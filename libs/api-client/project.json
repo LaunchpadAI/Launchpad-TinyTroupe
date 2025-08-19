@@ -1,0 +1,23 @@
+{
+  "name": "api-client",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/api-client/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc",
+        "cwd": "libs/api-client"
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Generating API client from OpenAPI spec...'",
+        "cwd": "libs/api-client"
+      }
+    }
+  },
+  "tags": ["scope:shared", "type:lib"]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "tinytroupe-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TinyTroupe Nx Monorepo - API Testing Frontend",
+  "scripts": {
+    "build": "nx build",
+    "test": "nx test",
+    "lint": "nx lint",
+    "serve": "nx serve",
+    "dev": "nx run-many --target=serve --projects=api,web --parallel",
+    "start:api": "nx serve api",
+    "start:web": "nx serve web",
+    "generate-api-client": "nx run api-client:generate"
+  },
+  "devDependencies": {
+    "@nx/js": "^21.4.0",
+    "@nx/next": "^21.4.0",
+    "@nx/node": "^21.4.0",
+    "@nx/workspace": "^21.4.0",
+    "@nx/eslint": "^21.4.0",
+    "nx": "^21.4.0",
+    "typescript": "~5.6.2",
+    "eslint": "~8.57.0"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "tinytroupe-core",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/tinytroupe-core",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python -m build",
+        "cwd": "libs/tinytroupe-core"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python -m pytest tests/",
+        "cwd": "libs/tinytroupe-core"
+      }
+    },
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pip install -e .",
+        "cwd": "libs/tinytroupe-core"
+      }
+    }
+  },
+  "tags": ["scope:tinytroupe", "type:lib"]
+}
