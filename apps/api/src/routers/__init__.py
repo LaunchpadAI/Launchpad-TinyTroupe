@@ -11,6 +11,9 @@ from .documents import router as documents_router
 from .research import router as research_router
 from .agents import router as agents_router
 from .health import router as health_router
+from .populations import router as populations_router
+from .simulation_control import router as simulation_control_router
+from .intervention import router as intervention_router
 
 def create_api_router() -> APIRouter:
     """Create main API router with all sub-routers"""
@@ -25,6 +28,9 @@ def create_api_router() -> APIRouter:
     api_router.include_router(research_router)
     api_router.include_router(agents_router)
     api_router.include_router(health_router)
+    api_router.include_router(populations_router)
+    api_router.include_router(simulation_control_router)
+    api_router.include_router(intervention_router)
     
     return api_router
 
@@ -38,4 +44,7 @@ __all__ = [
     "research_router",
     "agents_router",
     "health_router",
+    "populations_router",
+    "simulation_control_router",
+    "intervention_router",
 ]

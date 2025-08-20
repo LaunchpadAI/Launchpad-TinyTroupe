@@ -4,8 +4,9 @@ Simulation endpoints
 
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
+import uuid
 
-from ..models.simulation import SimulationRequest, SimulationResponse
+from ..models.simulation import SimulationRequestLegacy, SimulationResponse
 from ..services.simulation_service import SimulationService
 from ..services.agent_service import AgentService
 from ..core.dependencies import get_simulation_service, get_agent_service
@@ -15,20 +16,26 @@ router = APIRouter(prefix="/api/v1/simulate", tags=["simulations"])
 
 @router.post("/focus-group", response_model=SimulationResponse)
 async def run_focus_group(
-    request: SimulationRequest,
+    request: SimulationRequestLegacy,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
     """Run a focus group simulation"""
     try:
-        # Load agents
+        # Load agents from specifications
         agents = []
-        for participant in request.participants:
-            agent = agent_service.load_agent(participant.agent_name)
-            agents.append(agent)
+        if request.participants.specifications:
+            for agent_spec in request.participants.specifications:
+                if isinstance(agent_spec, str):
+                    # It's an agent name
+                    agent = agent_service.load_agent(agent_spec)
+                    agents.append(agent)
         
-        # Run simulation
-        result = simulation_service.run_simulation(request, agents)
+        if not agents:
+            raise ValueError("No valid agents found in participants")
+        
+        # Run simulation using the legacy service
+        result = simulation_service.run_legacy_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -37,18 +44,24 @@ async def run_focus_group(
 
 @router.post("/individual-interaction", response_model=SimulationResponse)
 async def run_individual_interaction(
-    request: SimulationRequest,
+    request: SimulationRequestLegacy,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
     """Run individual agent interaction simulation"""
     try:
-        # Load single agent
-        if len(request.participants) != 1:
+        # Load agents from specifications
+        agents = []
+        if request.participants.specifications:
+            for agent_spec in request.participants.specifications:
+                if isinstance(agent_spec, str):
+                    agent = agent_service.load_agent(agent_spec)
+                    agents.append(agent)
+        
+        if len(agents) != 1:
             raise ValueError("Individual interaction requires exactly one participant")
         
-        agent = agent_service.load_agent(request.participants[0].agent_name)
-        result = simulation_service.run_simulation(request, [agent])
+        result = simulation_service.run_legacy_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -57,20 +70,24 @@ async def run_individual_interaction(
 
 @router.post("/social-simulation", response_model=SimulationResponse)
 async def run_social_simulation(
-    request: SimulationRequest,
+    request: SimulationRequestLegacy,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
     """Run social interaction simulation"""
     try:
-        # Load agents
+        # Load agents from specifications
         agents = []
-        for participant in request.participants:
-            agent = agent_service.load_agent(participant.agent_name)
-            agents.append(agent)
+        if request.participants.specifications:
+            for agent_spec in request.participants.specifications:
+                if isinstance(agent_spec, str):
+                    agent = agent_service.load_agent(agent_spec)
+                    agents.append(agent)
         
-        # Run simulation with social dynamics
-        result = simulation_service.run_simulation(request, agents)
+        if not agents:
+            raise ValueError("No valid agents found in participants")
+        
+        result = simulation_service.run_legacy_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -79,20 +96,24 @@ async def run_social_simulation(
 
 @router.post("/market-research", response_model=SimulationResponse)
 async def run_market_research(
-    request: SimulationRequest,
+    request: SimulationRequestLegacy,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
     """Run market research simulation"""
     try:
-        # Load agents
+        # Load agents from specifications
         agents = []
-        for participant in request.participants:
-            agent = agent_service.load_agent(participant.agent_name)
-            agents.append(agent)
+        if request.participants.specifications:
+            for agent_spec in request.participants.specifications:
+                if isinstance(agent_spec, str):
+                    agent = agent_service.load_agent(agent_spec)
+                    agents.append(agent)
         
-        # Run market research simulation
-        result = simulation_service.run_simulation(request, agents)
+        if not agents:
+            raise ValueError("No valid agents found in participants")
+        
+        result = simulation_service.run_legacy_simulation(request, agents)
         return result
         
     except Exception as e:

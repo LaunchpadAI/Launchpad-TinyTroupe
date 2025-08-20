@@ -8,6 +8,8 @@ from ..services.simulation_service import SimulationService
 from ..services.world_service import WorldService
 from ..services.content_service import ContentService
 from ..services.research_service import ResearchService
+from ..services.population_service import PopulationService
+from ..services.simulation_control_service import SimulationControlService
 from .config import settings
 
 
@@ -35,3 +37,13 @@ def get_content_service() -> ContentService:
 def get_research_service() -> ResearchService:
     """Dependency injection for ResearchService"""
     return ResearchService()
+
+@lru_cache()
+def get_population_service() -> PopulationService:
+    """Dependency injection for PopulationService"""
+    return PopulationService()
+
+@lru_cache()
+def get_simulation_control_service() -> SimulationControlService:
+    """Dependency injection for SimulationControlService"""
+    return SimulationControlService()

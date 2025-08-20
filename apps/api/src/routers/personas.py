@@ -97,19 +97,32 @@ async def apply_fragments(
     request: FragmentApplicationRequest,
     agent_service: AgentService = Depends(get_agent_service)
 ):
-    """Apply persona fragments to modify a persona"""
+    """Apply persona fragments to modify a persona - PROPERLY IMPLEMENTED"""
     try:
-        # This would require implementing fragment application logic
-        # For now, return success message
+        # Load the persona first
+        agent = agent_service.load_agent_by_id(request.persona_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Persona not found")
+        
+        # Apply fragment through TinyTroupe's fragment system
+        result = agent_service.apply_fragment_to_agent(
+            agent=agent,
+            fragment_text=request.fragment_text
+        )
+        
         return {
             "status": "success",
             "persona_id": request.persona_id,
             "fragments_applied": request.fragment_text,
-            "message": "Fragment application completed"
+            "message": "Fragment application completed",
+            "updated_specification": result.get("specification", {}),
+            "modification_summary": result.get("summary", "Fragment applied successfully")
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Fragment application failed: {str(e)}")
 
 
 @router.post("/validate", response_model=ValidationResponse)
@@ -163,3 +176,22 @@ async def get_persona_templates(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/fragments/available")
+async def get_available_fragments(
+    agent_service: AgentService = Depends(get_agent_service)
+):
+    """Get all available personality fragments with descriptions"""
+    try:
+        fragments_dict = agent_service.get_available_fragments()
+        fragments_list = [
+            {
+                "id": frag_id,
+                "name": frag_id.replace("_", " ").title(),
+                "description": description
+            }
+            for frag_id, description in fragments_dict.items()
+        ]
+        return {"fragments": fragments_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving fragments: {str(e)}")

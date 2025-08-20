@@ -9,14 +9,20 @@ from datetime import datetime
 
 
 class SimulationType(str, Enum):
+    INDIVIDUAL = "individual_interaction"
     FOCUS_GROUP = "focus_group"
+    SOCIAL_SIMULATION = "social_simulation"
+    MARKET_RESEARCH = "market_research"
     ADVERTISEMENT_TEST = "advertisement_test"
     PRODUCT_EVALUATION = "product_evaluation"
     INTERVIEW = "interview"
 
 class PersonaCreationMode(str, Enum):
     FROM_AGENT = "from_agent"
-    FROM_FACTORY = "from_factory"
+    FROM_FACTORY = "from_factory" 
+    EXISTING_AGENTS = "existing_agents"
+    FACTORY_GENERATED = "factory_generated"
+    DEMOGRAPHIC_SAMPLE = "demographic_sample"
 
 class OutputFormat(str, Enum):
     TEXT = "text"
