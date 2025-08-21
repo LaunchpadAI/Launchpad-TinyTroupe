@@ -22,26 +22,33 @@ class SimulationService:
         self.active_simulations: Dict[str, Dict[str, Any]] = {}
         self.extractor = ResultsExtractor()
         self.reducer = ResultsReducer()
+        # Ensure cache directory exists
+        import os
+        os.makedirs("cache/sessions", exist_ok=True)
     
     def run_simulation(self, request: SimulationRequest, agents: List[TinyPerson]) -> SimulationResponse:
         """Run a complete simulation with the given parameters"""
         simulation_id = str(uuid.uuid4())
-        
-        # Create world and add agents
-        world = TinyWorld(f"Simulation_{simulation_id}")
-        for agent in agents:
-            world.add_agent(agent)
-        
-        # Store simulation state
-        self.active_simulations[simulation_id] = {
-            "world": world,
-            "request": request,
-            "status": "running",
-            "started_at": datetime.now(),
-            "interactions": []
-        }
+        session_cache_file = f"cache/sessions/sim_{simulation_id}.json"
         
         try:
+            # Start session-scoped cache
+            control.begin(cache_file=session_cache_file, cache=True)
+            
+            # Create world and add agents
+            world = TinyWorld(f"Simulation_{simulation_id}")
+            for agent in agents:
+                world.add_agent(agent)
+            
+            # Store simulation state
+            self.active_simulations[simulation_id] = {
+                "world": world,
+                "request": request,
+                "status": "running",
+                "started_at": datetime.now(),
+                "interactions": []
+            }
+            
             # Present stimulus
             world.broadcast(request.stimulus.content)
             
@@ -57,15 +64,33 @@ class SimulationService:
                 # Store in simulation state
                 self.active_simulations[simulation_id]["interactions"].extend(round_interactions)
             
-            # Extract results
-            checkpoint_name = f"sim_{simulation_id}_checkpoint"
-            control.checkpoint(checkpoint_name)
+            # Extract results following TinyTroupe patterns
+            extracted_results = None
+            checkpoint_name = None
             
-            extracted_results = self._extract_results(
-                checkpoint_name,
-                request.extraction.extraction_objective,
-                request.extraction.result_type
-            )
+            if request.extraction.extract_results:
+                try:
+                    extracted_results = self._extract_results(
+                        agents,
+                        request.extraction.extraction_objective,
+                        request.extraction.result_type
+                    )
+                    print(f"DEBUG: Results extraction completed")
+                except Exception as e:
+                    print(f"DEBUG: Results extraction failed: {str(e)}")
+                    raise
+            
+            # Optional: Create a checkpoint for state preservation
+            # (Not needed for extraction, but useful for resuming simulations)
+            if hasattr(request.extraction, 'save_checkpoint') and request.extraction.save_checkpoint:
+                checkpoint_name = f"sim_{simulation_id}_checkpoint"
+                try:
+                    control.checkpoint(checkpoint_name)
+                    print(f"DEBUG: Checkpoint saved: {checkpoint_name}")
+                except Exception as e:
+                    print(f"DEBUG: Checkpoint creation failed: {str(e)}")
+                    # Don't fail the simulation if checkpoint fails
+                    checkpoint_name = None
             
             # Update simulation status
             self.active_simulations[simulation_id]["status"] = "completed"
@@ -81,24 +106,52 @@ class SimulationService:
         except Exception as e:
             self.active_simulations[simulation_id]["status"] = "failed"
             raise Exception(f"Simulation failed: {str(e)}")
+        finally:
+            # Always end the session to clean up
+            try:
+                control.end()
+            except:
+                pass
     
-    def _extract_results(self, checkpoint_name: str, objective: str, result_type: str) -> Dict[str, Any]:
-        """Extract structured results from simulation with advanced analytics"""
+    def _extract_results(self, agents: List[TinyPerson], objective: str, result_type: str) -> Dict[str, Any]:
+        """Extract structured results from simulation following TinyTroupe patterns"""
         try:
-            # Enhanced ResultsExtractor following TinyTroupe patterns
-            extraction_results = self.extractor.extract_results_from_checkpoint(
-                checkpoint_name=checkpoint_name,
-                extraction_objective=objective,
-                fields=["response", "sentiment", "key_points", "opinion", "rating", "concerns", "demographics"],
-                extraction_hint="Extract both individual responses and aggregate patterns. Include sentiment analysis."
+            # Extract results from agents following TinyTroupe notebook patterns
+            # Use the first agent as the rapporteur (like in Product Brainstorming example)
+            rapporteur = agents[0] if agents else None
+            if not rapporteur:
+                return {"error": "No agents available for results extraction"}
+            
+            print(f"DEBUG: Extracting results from agent: {rapporteur.name}")
+            print(f"DEBUG: Extraction objective: {objective}")
+            
+            # First, ask the rapporteur to consolidate the discussion
+            consolidation_prompt = (
+                "Can you please consolidate the discussion and opinions that were shared? "
+                "Provide detailed insights on each perspective, including key points and concerns."
             )
+            rapporteur.listen_and_act(consolidation_prompt)
+            
+            # Extract results from the rapporteur agent (TinyTroupe pattern from examples)
+            extraction_results = self.extractor.extract_results_from_agent(
+                rapporteur,
+                extraction_objective=objective,
+                situation="A focus group or simulation session to gather opinions and insights."
+            )
+            
+            print(f"DEBUG: Raw extraction results: {extraction_results}")
             
             # Process results with statistical analysis
             processed_results = self._process_extraction_results(extraction_results, result_type)
             
+            print(f"DEBUG: Processed results: {processed_results}")
+            
             return processed_results
                 
         except Exception as e:
+            print(f"DEBUG: Exception in _extract_results: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {"error": f"Failed to extract results: {str(e)}"}
     
     def _process_extraction_results(self, raw_results: Dict[str, Any], result_type: str) -> Dict[str, Any]:
@@ -119,7 +172,8 @@ class SimulationService:
             elif result_type == "dataframe":
                 return self._convert_to_dataframe_format(processed)
             elif result_type == "json":
-                return self.reducer.reduce_agent_responses(raw_results, "json")
+                # ResultsReducer doesn't have reduce_agent_responses, just return processed
+                return processed
             else:
                 return processed
                 
@@ -393,14 +447,16 @@ class SimulationService:
             extracted_results = None
             checkpoint_name = None
             if request.extraction_config.extract_results:
-                checkpoint_name = f"sim_{simulation_id}_checkpoint"
-                control.checkpoint(checkpoint_name)
-                
-                extracted_results = self._extract_results(
-                    checkpoint_name,
-                    request.extraction_config.extraction_objective,
-                    request.extraction_config.result_type
-                )
+                try:
+                    extracted_results = self._extract_results(
+                        agents,
+                        request.extraction_config.extraction_objective,
+                        request.extraction_config.result_type
+                    )
+                    print(f"DEBUG: Results extraction completed")
+                except Exception as e:
+                    print(f"DEBUG: Results extraction failed: {str(e)}")
+                    raise
             
             # Update simulation status
             self.active_simulations[simulation_id]["status"] = "completed"

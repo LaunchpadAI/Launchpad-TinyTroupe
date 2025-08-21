@@ -22,13 +22,16 @@ async def run_focus_group(
 ):
     """Run a focus group simulation"""
     try:
-        # Load agents from specifications
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    # It's an agent name
-                    agent = agent_service.load_agent(agent_spec)
+                    # It's an agent name - load with unique suffix
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
                     agents.append(agent)
         
         if not agents:
@@ -50,12 +53,15 @@ async def run_individual_interaction(
 ):
     """Run individual agent interaction simulation"""
     try:
-        # Load agents from specifications
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
                     agents.append(agent)
         
         if len(agents) != 1:
@@ -76,12 +82,15 @@ async def run_social_simulation(
 ):
     """Run social interaction simulation"""
     try:
-        # Load agents from specifications
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
                     agents.append(agent)
         
         if not agents:
@@ -107,7 +116,7 @@ async def run_market_research(
         if request.participants.specifications:
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
                     agents.append(agent)
         
         if not agents:

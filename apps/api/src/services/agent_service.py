@@ -57,14 +57,18 @@ class AgentRegistry:
         """Get agent metadata. Future: SELECT * FROM agents WHERE id = agent_id"""
         return self.available_agents.get(agent_id)
     
-    def load_agent(self, agent_id: str) -> TinyPerson:
-        """Load agent instance. Future: load from DB stored spec"""
+    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None) -> TinyPerson:
+        """Load agent instance with optional unique suffix to avoid naming conflicts"""
         agent_info = self.get_agent_info(agent_id)
         if not agent_info:
             raise ValueError(f"Agent '{agent_id}' not found")
         
         try:
-            return TinyPerson.load_specification(agent_info["file_path"])
+            agent = TinyPerson.load_specification(agent_info["file_path"])
+            # Add unique suffix to avoid naming conflicts
+            if unique_suffix:
+                agent.name = f"{agent.name}_{unique_suffix}"
+            return agent
         except Exception as e:
             raise ValueError(f"Failed to load agent '{agent_id}': {str(e)}")
     
@@ -89,9 +93,9 @@ class AgentService:
         """Get information about a specific agent"""
         return self.registry.get_agent_info(agent_id)
     
-    def load_agent(self, agent_id: str) -> TinyPerson:
-        """Load an agent instance"""
-        return self.registry.load_agent(agent_id)
+    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None) -> TinyPerson:
+        """Load an agent instance with optional unique suffix"""
+        return self.registry.load_agent(agent_id, unique_suffix)
     
     def create_persona_from_agent(self, agent_name: str, new_agent_name: Optional[str] = None) -> TinyPerson:
         """Create a persona from an existing agent"""

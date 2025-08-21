@@ -29,10 +29,13 @@ async def evaluate_product(
 ):
     """Conduct comprehensive product evaluation"""
     try:
-        # Load agents
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents with unique session suffix
         agents = []
         for agent_name in request.agents:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Run product evaluation
@@ -51,10 +54,13 @@ async def test_advertisement(
 ):
     """Test advertisement with focus group"""
     try:
-        # Load agents
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents with unique session suffix
         agents = []
         for agent_name in request.agents:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Run advertisement test
@@ -73,10 +79,13 @@ async def analyze_segments(
 ):
     """Analyze market segments"""
     try:
-        # Load agents
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents with unique session suffix
         agents = []
         for agent_name in request.agents:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Analyze segments (implementation needed)
@@ -100,8 +109,11 @@ async def conduct_customer_interview(
 ):
     """Conduct customer interview"""
     try:
-        # Load agent (single agent for interview)
-        agent = agent_service.load_agent("lisa")  # Default to lisa for interviews
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agent with unique session suffix
+        agent = agent_service.load_agent("lisa", unique_suffix=session_id)  # Default to lisa for interviews
         
         # Conduct interview
         result = research_service.conduct_customer_interview(request, agent)
@@ -119,10 +131,13 @@ async def run_brainstorming(
 ):
     """Run collaborative brainstorming session"""
     try:
-        # Load agents
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents with unique session suffix
         agents = []
         for agent_name in request.participants:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Run brainstorming
@@ -141,10 +156,13 @@ async def create_collaborative_story(
 ):
     """Create collaborative story"""
     try:
-        # Load agents
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents with unique session suffix
         agents = []
         for agent_name in request.participants:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Create story
@@ -163,12 +181,15 @@ async def test_tv_advertisement(
 ):
     """Test TV advertisement with focus group"""
     try:
-        # Load agents for focus group
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Load agents for focus group with unique session suffix
         agents = []
         agent_names = ["lisa", "oscar", "marcos"][:request.focus_group_size]
         
         for agent_name in agent_names:
-            agent = agent_service.load_agent(agent_name)
+            agent = agent_service.load_agent(agent_name, unique_suffix=session_id)
             agents.append(agent)
         
         # Convert to AdvertisementTestRequest

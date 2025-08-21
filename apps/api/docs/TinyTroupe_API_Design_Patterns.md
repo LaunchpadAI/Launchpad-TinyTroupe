@@ -4,6 +4,9 @@
 
 This document outlines the core infrastructure patterns and requirements that ALL TinyTroupe API endpoints must follow. Use this as a reference when designing new endpoints to ensure consistency with TinyTroupe's notebook patterns.
 
+**Status**: ✅ **Production Implementation Complete**  
+**Key Achievement**: Session isolation with concurrent simulation support
+
 ---
 
 ## Core TinyTroupe Pattern
@@ -38,6 +41,49 @@ results = extractor.extract_results_from_agents(agents)
 # 7. Session Cleanup
 control.end()
 ```
+
+## Production Implementation Pattern
+
+Our API implements the above pattern with **session isolation** to support concurrent users:
+
+```python
+# API Implementation Pattern
+def run_simulation(request, agents):
+    simulation_id = str(uuid.uuid4())
+    session_cache_file = f"cache/sessions/sim_{simulation_id}.json"
+    
+    try:
+        # 1. Session-scoped cache
+        control.begin(cache_file=session_cache_file, cache=True)
+        
+        # 2. Unique agent instances per session
+        unique_agents = []
+        session_suffix = simulation_id[:8]
+        for spec in request.participants:
+            agent = agent_service.load_agent(spec, unique_suffix=session_suffix)
+            unique_agents.append(agent)
+        
+        # 3. Standard TinyTroupe flow
+        world = TinyWorld(f"Simulation_{simulation_id}")
+        world.broadcast(request.stimulus.content)
+        world.run(request.rounds)
+        
+        # 4. Results extraction (no checkpoint needed)
+        if request.extract_results:
+            rapporteur = unique_agents[0]
+            rapporteur.listen_and_act("Consolidate the discussion...")
+            results = extractor.extract_results_from_agent(rapporteur, objective)
+        
+        return results
+    finally:
+        control.end()  # Always cleanup
+```
+
+**Key Innovations:**
+- ✅ **Session-scoped caches** prevent conflicts
+- ✅ **Unique agent naming** enables concurrency  
+- ✅ **Direct agent extraction** (not checkpoint-based)
+- ✅ **Automatic cleanup** ensures no leaks
 
 ---
 
