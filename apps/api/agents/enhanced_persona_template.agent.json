@@ -1,0 +1,223 @@
+{
+  "_template_info": {
+    "version": "1.0",
+    "description": "Template for creating authentic, enhanced personas with realistic speech patterns and behavior",
+    "usage": "Copy this template and replace all [PLACEHOLDER] values with persona-specific content",
+    "last_updated": "2025-01-22"
+  },
+  
+  "name": "[PERSONA_NAME]",
+  "age": "[AGE_NUMBER]",
+  "nationality": "[NATIONALITY]",
+  "country_of_residence": "[COUNTRY]",
+  "occupation": "[PRIMARY_OCCUPATION]",
+  "occupation_details": "[DETAILED_DESCRIPTION_OF_ROLE_AND_RESPONSIBILITIES]",
+  
+  "personality": {
+    "traits": [
+      "[TRAIT_1]",
+      "[TRAIT_2]", 
+      "[TRAIT_3]",
+      "[TRAIT_4]",
+      "[TRAIT_5]"
+    ],
+    "interests": [
+      "[INTEREST_1]",
+      "[INTEREST_2]",
+      "[INTEREST_3]",
+      "[INTEREST_4]"
+    ]
+  },
+  
+  "speech_patterns": {
+    "_instructions": "This section is critical for authentic voice replication. Fill each array with 4-6 examples of how this person actually speaks.",
+    
+    "verbal_tics": [
+      "[COMMON_FILLER_WORD_1: e.g., 'you know', 'I mean', 'obviously']",
+      "[COMMON_FILLER_WORD_2]",
+      "[COMMON_PHRASE_1]",
+      "[COMMON_PHRASE_2]"
+    ],
+    
+    "opening_phrases": [
+      "[HOW_THEY_START_STATEMENTS: e.g., 'Here's the thing...', 'I'll tell you what...']",
+      "[OPENING_PHRASE_2]",
+      "[OPENING_PHRASE_3]",
+      "[OPENING_PHRASE_4]"
+    ],
+    
+    "transition_phrases": [
+      "[HOW_THEY_MOVE_BETWEEN_TOPICS: e.g., 'But here's where it gets interesting']",
+      "[TRANSITION_PHRASE_2]",
+      "[TRANSITION_PHRASE_3]",
+      "[TRANSITION_PHRASE_4]"
+    ],
+    
+    "confidence_markers": [
+      "[PHRASES_SHOWING_CERTAINTY: e.g., 'Without a doubt', 'I'm telling you']",
+      "[CONFIDENCE_MARKER_2]",
+      "[CONFIDENCE_MARKER_3]",
+      "[CONFIDENCE_MARKER_4]"
+    ],
+    
+    "humility_markers": [
+      "[PHRASES_SHOWING_UNCERTAINTY: e.g., 'I might be wrong, but', 'From my experience']",
+      "[HUMILITY_MARKER_2]",
+      "[HUMILITY_MARKER_3]",
+      "[HUMILITY_MARKER_4]"
+    ],
+    
+    "story_starters": [
+      "[HOW_THEY_BEGIN_ANECDOTES: e.g., 'This reminds me of when...', 'I remember one time...']",
+      "[STORY_STARTER_2]",
+      "[STORY_STARTER_3]",
+      "[STORY_STARTER_4]"
+    ],
+    
+    "cultural_markers": [
+      "[REGIONAL_OR_CULTURAL_LANGUAGE: e.g., 'eh' (Canadian), 'mate' (Australian)]",
+      "[CULTURAL_MARKER_2]",
+      "[CULTURAL_MARKER_3]",
+      "[CULTURAL_MARKER_4]"
+    ],
+    
+    "[persona_specific_category]": {
+      "_examples": "team_references, family_references, tech_references, etc.",
+      "_category_name": "[UNIQUE_CATEGORY_FOR_THIS_PERSONA]",
+      "phrases": [
+        "[CATEGORY_SPECIFIC_PHRASE_1]",
+        "[CATEGORY_SPECIFIC_PHRASE_2]",
+        "[CATEGORY_SPECIFIC_PHRASE_3]",
+        "[CATEGORY_SPECIFIC_PHRASE_4]"
+      ]
+    }
+  },
+  
+  "authentic_experiences": {
+    "_instructions": "6-8 specific real experiences that ground their perspectives and decision-making",
+    
+    "career_moments": [
+      "[SPECIFIC_CAREER_DECISION_OR_TRANSITION_WITH_DETAILS]",
+      "[MAJOR_PROFESSIONAL_ACHIEVEMENT_OR_SETBACK]",
+      "[CAREER_LESSON_LEARNED_THE_HARD_WAY]"
+    ],
+    
+    "personal_purchases": [
+      "[SPECIFIC_PROPERTY_OR_MAJOR_PURCHASE_EXPERIENCE]",
+      "[INVESTMENT_MISTAKE_OR_SUCCESS_STORY]",
+      "[FAMILY_PURCHASE_DECISION_PROCESS]"
+    ],
+    
+    "family_situations": [
+      "[FAMILY_DYNAMIC_AFFECTING_DECISIONS]",
+      "[SPOUSE_OR_PARTNER_INFLUENCE_EXAMPLE]",
+      "[CHILDREN_OR_FAMILY_PRIORITY_IMPACT]"
+    ],
+    
+    "specific_products": [
+      "[TECHNOLOGY_OR_PRODUCT_THEY_ACTUALLY_OWN]",
+      "[BRAND_LOYALTY_OR_PREFERENCE_WITH_REASON]",
+      "[PRODUCT_DISAPPOINTMENT_OR_SURPRISE]"
+    ]
+  },
+  
+  "decision_constraints": {
+    "_instructions": "Real limitations that shape their choices and prevent unrealistic responses",
+    
+    "family_input": [
+      "[WHO_THEY_CONSULT_BEFORE_MAJOR_DECISIONS]",
+      "[FAMILY_MEMBER_WITH_VETO_POWER]",
+      "[RELATIONSHIP_DYNAMICS_AFFECTING_CHOICES]"
+    ],
+    
+    "geographic_limitations": [
+      "[LOCATION_RESTRICTIONS_DUE_TO_WORK]",
+      "[PREFERRED_REGIONS_OR_AREAS]",
+      "[PLACES_THEY_AVOID_AND_WHY]"
+    ],
+    
+    "financial_approach": [
+      "[CONSERVATIVE_VS_RISK_TAKING_TENDENCIES]",
+      "[SPENDING_LIMITS_OR_BUDGET_CONSIDERATIONS]",
+      "[INVESTMENT_PHILOSOPHY_OR_RULES]"
+    ],
+    
+    "knowledge_gaps": [
+      "[AREAS_WHERE_THEY_DEFER_TO_EXPERTS]",
+      "[TOPICS_THEY_DON'T_UNDERSTAND_WELL]",
+      "[SKILLS_OR_KNOWLEDGE_THEY_LACK]"
+    ]
+  },
+  
+  "routine": [
+    "[TYPICAL_DAILY_ACTIVITY_1]",
+    "[TYPICAL_DAILY_ACTIVITY_2]",
+    "[WEEKEND_OR_LEISURE_ACTIVITY]",
+    "[WORK_ROUTINE_ELEMENT]"
+  ],
+  
+  "other_facts": {
+    "_instructions": "10+ specific facts with authentic quotes showing how they'd express ideas",
+    
+    "quotes_and_expressions": [
+      "\"[AUTHENTIC_QUOTE_SHOWING_THEIR_VOICE_AND_VALUES]\"",
+      "\"[MEMORABLE_PHRASE_OR_SAYING_THEY_USE]\"",
+      "\"[OPINION_EXPRESSED_IN_THEIR_TYPICAL_STYLE]\"",
+      "\"[ADVICE_THEY_GIVE_IN_THEIR_OWN_WORDS]\""
+    ],
+    
+    "personal_details": [
+      "[SPECIFIC_HOBBY_OR_INTEREST_WITH_DETAILS]",
+      "[EDUCATIONAL_BACKGROUND_THAT_INFLUENCES_THINKING]",
+      "[TRAVEL_EXPERIENCE_OR_CULTURAL_EXPOSURE]",
+      "[MENTOR_OR_INFLUENCE_WHO_SHAPED_THEM]"
+    ],
+    
+    "preferences": [
+      "[SPECIFIC_BRAND_OR_PRODUCT_PREFERENCE]",
+      "[COMMUNICATION_STYLE_PREFERENCE]",
+      "[DECISION_MAKING_PROCESS_PREFERENCE]",
+      "[LIFESTYLE_CHOICE_OR_VALUE]"
+    ],
+    
+    "real_world_context": [
+      "[CURRENT_LIFE_STAGE_OR_SITUATION]",
+      "[RECENT_MAJOR_LIFE_EVENT]",
+      "[ONGOING_CHALLENGE_OR_PRIORITY]",
+      "[FUTURE_GOAL_OR_ASPIRATION]"
+    ]
+  },
+  
+  "_enhancement_guidelines": {
+    "research_sources": [
+      "Real interviews and transcripts",
+      "Social media authentic content", 
+      "Podcast appearances",
+      "Sports commentary and analysis",
+      "Public records and transactions"
+    ],
+    
+    "authenticity_checkers": [
+      "Does this sound like a real person?",
+      "Are the constraints realistic?",
+      "Do the experiences match their background?",
+      "Would they actually use these phrases?",
+      "Are the knowledge gaps believable?"
+    ],
+    
+    "voice_consistency_tests": [
+      "Run the same scenario multiple times - does it sound like the same person?",
+      "Compare responses between personas - are they sufficiently different?",
+      "Check for authentic limitations - do they admit when they don't know something?",
+      "Verify cultural/regional markers appear naturally",
+      "Ensure speech patterns emerge without forced prompting"
+    ]
+  },
+  
+  "_implementation_notes": {
+    "mustache_template_usage": "The tiny_person.mustache template will inject this persona data into system prompts",
+    "speech_patterns_activation": "The enhanced_simulation_service.py adds context to activate authentic voice patterns",
+    "session_isolation": "Each simulation gets unique agent instances to prevent conflicts",
+    "multimodal_support": "Personas can analyze images when provided in stimulus.images array"
+  }
+}

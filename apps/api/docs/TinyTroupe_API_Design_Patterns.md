@@ -262,6 +262,17 @@ agent.listen_and_act("Direct message")
 - Set number of interaction rounds
 - Enable/disable agent memory and thinking
 
+**Chronological Conversation Flow:**
+The API preserves natural conversation flow by parsing TinyTroupe's chronological action data directly:
+```python
+def _parse_actions_chronologically(self, actions_over_time: List[Dict]) -> List[Dict[str, Any]]:
+    """Parse TinyTroupe's chronological action data to preserve conversation flow"""
+    # Structure: [{agent_name: [{action: {type: 'TALK', content: '...'}}]}]
+    # Extracts all TALK actions in chronological order across agents and rounds
+```
+
+**Key Enhancement**: Maintains natural conversation flow instead of grouping responses by agent, ensuring realistic dialogue patterns in focus groups and discussions.
+
 ### 5. Results Extraction (Mandatory)
 
 **Field-Based Extraction:**
@@ -395,34 +406,29 @@ class NewEndpointService:
 
 ```json
 {
-  "session_config": {
-    "session_name": "operation_name",
-    "cache_file": "cache_name.json",
-    "description": "What this operation does"
-  },
+  "simulation_type": "focus_group|survey|market_research|brainstorming",
   "participants": {
-    "mode": "from_demographics|from_agent|from_population|custom",
-    "specifications": [...],
-    "count": 50
+    "mode": "from_agent|from_demographics|from_population",
+    "specifications": ["lisa", "oscar", "marcos"],
+    "population_params": {...},
+    "fragments_to_apply": ["health_conscious", "tech_savvy"]
   },
-  "simulation_config": {
-    "environment_type": "focus_group|survey|interview",
+  "interaction_config": {
+    "allow_cross_communication": true,
     "rounds": 3,
     "enable_memory": true,
-    "enable_thinking": true,
-    "broadcast_mode": true|false
+    "enable_semantic_memory": null,
+    "cache_simulation": false
   },
   "stimulus": {
     "type": "product|message|question|scenario",
-    "content": "The actual stimulus",
+    "content": "The actual stimulus content",
     "context": {...}
   },
   "extraction_config": {
     "extract_results": true,
     "extraction_objective": "Clear statement of what to extract",
-    "fields": ["response", "sentiment", "rating"],
-    "fields_hints": {"response": "Format specification"},
-    "statistical_analysis": true
+    "result_type": "json"
   }
 }
 ```
@@ -431,30 +437,27 @@ class NewEndpointService:
 
 ```json
 {
-  "operation_id": "uuid",
-  "session_id": "uuid",
-  "status": "completed|failed|partial",
-  "participants": {
-    "total": 50,
-    "successful": 48,
-    "failed": 2
-  },
-  "simulation_results": {
-    "interactions": [...],
-    "rounds_completed": 3,
-    "total_interactions": 144
-  },
+  "simulation_id": "uuid",
+  "status": "success|error",
+  "checkpoint_name": "simulation_complete",
+  "interactions": [
+    {
+      "round": 1,
+      "agent": "Lisa Carter",
+      "content": "Agent response content...",
+      "timestamp": "2024-01-01T12:00:00",
+      "type": "agent_contribution",
+      "action_type": "TALK"
+    }
+  ],
   "extracted_results": {
-    "individual_results": [...],
-    "aggregate_statistics": {...},
-    "statistical_analysis": {...}
+    "key_insights": [...],
+    "sentiment_analysis": {...},
+    "statistical_summary": {...}
   },
-  "metadata": {
-    "execution_time": "2.5 minutes",
-    "cache_file": "operation.cache.json",
-    "checkpoints": ["agents_created", "simulation_complete"],
-    "quality_score": 0.85
-  }
+  "participants": ["Lisa Carter", "Oscar Rodriguez", "Marcos Almeida"],
+  "results": {...},
+  "error": null
 }
 ```
 
@@ -592,16 +595,54 @@ async def good_endpoint(request):
 Before implementing any new TinyTroupe API endpoint, verify:
 
 - [ ] **Session Management**: Uses SimulationControlService for all operations
-- [ ] **Agent Creation**: Follows factory patterns or specification loading
+- [ ] **Agent Creation**: Follows factory patterns or specification loading  
 - [ ] **Memory Configuration**: Properly configures semantic memory based on simulation type
 - [ ] **Checkpointing**: Saves state at logical breakpoints
 - [ ] **Simulation Execution**: Uses TinyWorld patterns with proper configuration
+- [ ] **Chronological Parsing**: Implements chronological conversation flow for natural interactions
 - [ ] **Results Extraction**: Implements field-based structured extraction
 - [ ] **Error Handling**: Graceful failure with informative messages
 - [ ] **Quality Assurance**: Includes confidence scoring and validation
 - [ ] **Performance**: Meets time and scalability requirements
 - [ ] **Documentation**: Follows this pattern documentation
 - [ ] **Testing**: Includes unit tests and integration tests
+
+---
+
+## Production Example: Real Estate Focus Group Demo
+
+The luxury real estate focus group demonstrates the complete implementation of TinyTroupe API patterns:
+
+**Key Features Implemented:**
+- ✅ **11 Real Athlete Personas**: Tony Parker, Wayne Gretzky, Kenny Pickett, etc. with authentic luxury real estate preferences
+- ✅ **Chronological Conversation Flow**: Natural dialogue using `_parse_actions_chronologically`
+- ✅ **Session Isolation**: Concurrent simulations with unique agent instances
+- ✅ **Semantic Memory Configuration**: Disabled for focus group conversations to prevent Document property errors
+- ✅ **Professional UI**: Real-time conversation display with agent avatars and timestamps
+
+**Frontend Location**: `/apps/web/src/app/property-focus-group/page.tsx`
+**API Integration**: Uses production simulation service with chronological parsing
+
+**Demo Usage Pattern:**
+```typescript
+const simulationRequest = {
+  simulation_type: "focus_group",
+  participants: {
+    mode: "from_agent",
+    specifications: ["tony_parker", "kenny_pickett", "wayne_gretzky"]
+  },
+  interaction_config: {
+    rounds: 4,
+    enable_semantic_memory: false  // Focus on conversation history
+  },
+  stimulus: {
+    type: "product",
+    content: "Luxury waterfront estate with smart home technology..."
+  }
+}
+```
+
+This demonstrates the complete TinyTroupe workflow from agent loading through chronological conversation extraction, serving as a reference implementation for similar focus group applications.
 
 ---
 
