@@ -210,3 +210,4 @@ coverage
 # System Files
 .DS_Store
 Thumbs.db
+apps/api/tinytroupe-api-cache.json
