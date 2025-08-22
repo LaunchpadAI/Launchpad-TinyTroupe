@@ -3,6 +3,7 @@ Simulation service for running TinyTroupe simulations
 """
 
 import uuid
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -35,6 +36,12 @@ class SimulationService:
         if actions_over_time:
             print(f"DEBUG: Using TinyTroupe's chronological action data ({len(actions_over_time)} actions)")
             interactions = self._parse_actions_chronologically(actions_over_time)
+            
+            # If no interactions found from actions, fall back to conversation content
+            if len(interactions) == 0 and conversation_content:
+                print(f"DEBUG: No interactions from actions, falling back to conversation content")
+                print(f"DEBUG: Conversation content length: {len(conversation_content)}")
+                interactions = self._parse_tinytroupe_formatted_output(conversation_content)
         else:
             # Fallback to parsing formatted output (less accurate for conversation flow)
             print(f"DEBUG: Fallback to parsing formatted conversation content")
@@ -50,6 +57,18 @@ class SimulationService:
         interactions = []
         
         print(f"DEBUG: Processing {len(actions_over_time)} chronological actions")
+        
+        # DEBUG: Show actual structure
+        for i, action_data in enumerate(actions_over_time):
+            print(f"🔍 Action {i}: type={type(action_data)}, keys={list(action_data.keys()) if isinstance(action_data, dict) else 'not_dict'}")
+            if isinstance(action_data, dict):
+                for key, value in action_data.items():
+                    print(f"   {key}: type={type(value)}, length={len(value) if isinstance(value, (list, dict, str)) else 'no_len'}")
+                    if isinstance(value, list) and len(value) > 0:
+                        print(f"      First item: type={type(value[0])}, content={str(value[0])[:100]}...")
+                    elif isinstance(value, dict):
+                        print(f"      Dict keys: {list(value.keys())}")
+        print("🔍 End of action structure dump")
         
         # TinyTroupe structure: [{agent_name: [{action: {type: 'TALK', content: '...'}, ...}, ...]}, ...]
         # We need to extract all TALK actions in chronological order across all agents and rounds
@@ -529,23 +548,165 @@ class SimulationService:
     
     def _prepare_stimulus_message(self, stimulus) -> str:
         """
-        Prepare stimulus message for broadcasting to agents.
-        Handles both text-only and multimodal (text + images) stimuli.
-        
-        For images, we create a text description that references the visual content,
-        then the actual multimodal handling happens in the OpenAI utils layer.
+        Enhanced stimulus preparation with authenticity activation.
+        Converts formal property descriptions to conversational tone and activates personas.
         """
-        message = stimulus.content
+        # Start with the base content
+        base_message = stimulus.content
         
-        # If images are present, enhance the text stimulus to reference them
+        # Convert formal property listing to conversational if it's property evaluation
+        if hasattr(stimulus, 'type') and stimulus.type == "property_evaluation":
+            base_message = self._make_conversational(base_message)
+        
+        # Add natural image reference if present
         if hasattr(stimulus, 'images') and stimulus.images:
             image_count = len(stimulus.images)
             if image_count == 1:
-                message = f"{message}\n\n[Note: There is 1 property image included for your visual analysis.]"
+                base_message += "\n\n[Looking at the property photo...]"
             else:
-                message = f"{message}\n\n[Note: There are {image_count} property images included for your visual analysis.]"
+                base_message += f"\n\n[Looking through {image_count} photos of the property...]"
+            
+            # Add natural reactions to images
+            base_message += "\nTake a look at these images - what's your gut reaction?"
         
-        return message
+        # Add authenticity activation globally with contrarian encouragement
+        base_message += ("\n\nJust be yourself here - I want your REAL opinion, not the polished version. "
+                        "Use your natural way of speaking, share personal experiences if they're relevant, "
+                        "and don't worry about sounding like an expert if that's not who you are. "
+                        "\n\nMost importantly: Don't just agree with everyone else! If something bothers you about this property "
+                        "or if you see red flags that others might miss, speak up! I want to hear what would actually "
+                        "make you walk away from a deal, not just the safe, diplomatic answers. What are your REAL concerns?")
+        
+        return base_message
+    
+    def _make_conversational(self, formal_content: str) -> str:
+        """
+        Convert formal property listing format to natural conversation.
+        This maintains all information but changes the tone.
+        """
+        
+        # If it's already conversational, return as-is
+        if "Property Overview:" not in formal_content:
+            return formal_content
+        
+        lines = formal_content.split('\n')
+        
+        # Track what we're processing
+        address = None
+        price = None
+        size = None
+        bedrooms = None
+        bathrooms = None
+        year = None
+        style = None
+        features = None
+        neighborhood = None
+        description = None
+        questions = []
+        
+        # Parse the formal structure
+        in_description = False
+        collecting_description = []
+        
+        for line in lines:
+            line = line.strip()
+            
+            if "Property Overview:" in line:
+                continue
+            
+            if in_description:
+                if line and not line.startswith('-') and not any(q in line for q in ['?', 'discuss:', 'recommendations']):
+                    collecting_description.append(line)
+                else:
+                    description = ' '.join(collecting_description)
+                    in_description = False
+            
+            if line.startswith('- Address:'):
+                address = line.replace('- Address:', '').strip()
+            elif line.startswith('- Asking Price:'):
+                price = line.replace('- Asking Price:', '').strip()
+            elif line.startswith('- Size:'):
+                size = line.replace('- Size:', '').strip()
+            elif line.startswith('- Bedrooms:'):
+                beds_baths = line.replace('- Bedrooms:', '').strip()
+                parts = beds_baths.split('|')
+                if parts:
+                    bedrooms = parts[0].strip()
+                if len(parts) > 1:
+                    bathrooms = parts[1].replace('Bathrooms:', '').strip()
+            elif line.startswith('- Year Built:'):
+                year = line.replace('- Year Built:', '').strip()
+            elif line.startswith('- Style:'):
+                style = line.replace('- Style:', '').strip()
+            elif line.startswith('- Key Features:'):
+                features = line.replace('- Key Features:', '').strip()
+            elif line.startswith('- Neighborhood:'):
+                neighborhood = line.replace('- Neighborhood:', '').strip()
+            elif line.startswith('Description:'):
+                in_description = True
+            elif '?' in line and not in_description:
+                questions.append(line.strip())
+        
+        # Build conversational version
+        conv = "Alright, so here's the deal - "
+        
+        if address:
+            conv += f"I'm looking at this property at {address}. "
+        else:
+            conv += "I'm looking at this property. "
+        
+        if price:
+            # Make price conversational
+            if '$' in price:
+                conv += f"They're asking {price} for it"
+                if 'million' in price.lower() or 'M' in price:
+                    conv += " - yeah, that much"
+                conv += ". "
+        
+        # Size and rooms
+        if size or bedrooms:
+            conv += "\n\nThe place is "
+            if size:
+                conv += f"{size}"
+            if bedrooms:
+                if size:
+                    conv += f", with {bedrooms}"
+                else:
+                    conv += f"{bedrooms}"
+            if bathrooms:
+                conv += f" and {bathrooms}"
+            conv += ". "
+        
+        # Style and year
+        if style or year:
+            if year and style:
+                conv += f"It's a {style} place, built in {year}. "
+            elif style:
+                conv += f"It's {style} style. "
+            elif year:
+                conv += f"Built in {year}. "
+        
+        # Neighborhood
+        if neighborhood:
+            conv += f"Located in {neighborhood}. "
+        
+        # Features
+        if features:
+            conv += f"\n\nSome highlights: {features}. "
+        
+        # Description
+        if description:
+            conv += f"\n\nHere's the thing: {description}"
+        
+        # Questions - make them conversational
+        if questions:
+            conv += "\n\nSo here's what I'm wondering:\n"
+            for q in questions[:3]:  # Limit to 3 main questions
+                # Remove numbering and make conversational
+                q_clean = re.sub(r'^\d+\.\s*', '', q)
+                conv += f"- {q_clean}\n"
+        
+        return conv
     
     def run_simulation(self, request: SimulationRequest, agents: List[TinyPerson]) -> SimulationResponse:
         """Run simulation following TinyTroupe example patterns exactly"""
@@ -556,10 +717,35 @@ class SimulationService:
             control.reset()
             control.begin(cache_path="./tinytroupe-api-cache.json")
             
-            # Create world following TinyTroupe example pattern
-            # For focus groups: broadcast_if_no_target=True (agents talk to each other)
-            # For surveys: broadcast_if_no_target=False (agents don't see each other's responses)
-            broadcast_to_others = request.simulation_type == "focus_group"
+            # COMPREHENSIVE PERSONA LOADING TRACE
+            print(f"\n🔍 SIMULATION TRACE START - Session: {simulation_id}")
+            print(f"📋 Request type: {request.simulation_type}")
+            print(f"🤝 Cross-communication toggle: {getattr(request.interaction_config, 'allow_cross_communication', 'NOT_SET')}")
+            
+            for i, agent in enumerate(agents):
+                print(f"\n👤 AGENT {i+1} LOADED:")
+                print(f"   📛 Name: {agent.name}")
+                print(f"   🆔 Original ID: {getattr(agent, '_original_id', 'unknown')}")
+                if hasattr(agent, '_specification') and agent._specification:
+                    print(f"   📋 Has specification: YES")
+                    if 'speech_patterns' in agent._specification.get('persona', {}):
+                        patterns = agent._specification['persona']['speech_patterns']
+                        print(f"   🗣️  Speech patterns: {list(patterns.keys())}")
+                        print(f"   🎯 Sample verbal_tics: {patterns.get('verbal_tics', [])[0:3]}")
+                    else:
+                        print(f"   ❌ NO SPEECH PATTERNS FOUND in specification")
+                else:
+                    print(f"   ❌ NO SPECIFICATION FOUND")
+            
+            # Use cross-communication setting from request, not hardcoded logic
+            # Check if the interaction_config has allow_cross_communication field
+            if hasattr(request.interaction_config, 'allow_cross_communication'):
+                broadcast_to_others = request.interaction_config.allow_cross_communication
+                print(f"🔧 Using user toggle: broadcast_if_no_target = {broadcast_to_others}")
+            else:
+                # Fallback to simulation type if toggle not provided
+                broadcast_to_others = request.simulation_type == "focus_group"
+                print(f"⚠️  No cross-communication toggle found, defaulting to: {broadcast_to_others}")
             
             world = TinyWorld(f"Simulation_{simulation_id}", agents, broadcast_if_no_target=broadcast_to_others)
             
@@ -577,19 +763,26 @@ class SimulationService:
             stimulus_message = self._prepare_stimulus_message(request.stimulus)
             world.broadcast(stimulus_message)
             
-            # Add inner thought for more realistic responses (like TinyTroupe examples)
-            if request.simulation_type == "focus_group":
-                inner_thought = """
-                I will engage authentically in this focus group discussion. I'll share my honest opinions 
-                and react naturally to what others say, while staying true to my personality and background.
-                """
-            else:
-                inner_thought = """
-                I will be honest as I understand they are not here to judge me, but just to learn from me. 
-                I'll consider my personal situation, preferences, and experiences when responding.
-                """
+            # Add PERSONA-SPECIFIC inner thoughts for authentic activation
+            print(f"\n🧠 SENDING PERSONA-SPECIFIC INNER THOUGHTS:")
             
-            world.broadcast_thought(inner_thought)
+            # Create a combined persona activation message that addresses each agent individually
+            combined_activation = "🎯 PERSONA ACTIVATION INSTRUCTIONS:\n\n"
+            for agent in agents:
+                persona_activation = self._create_persona_specific_inner_thought(agent, request.simulation_type)
+                print(f"\n👤 {agent.name}:")
+                print(f"   💭 Inner thought: {persona_activation[:100]}...")
+                
+                # Add to combined message with agent-specific targeting
+                combined_activation += f"FOR {agent.name}:\n{persona_activation}\n\n"
+            
+            combined_activation += """
+🎯 IMPORTANT: Each agent should only follow the instructions addressed to them by name above.
+Use your authentic speech patterns extensively in every response.
+"""
+            
+            # Send combined persona activation through world broadcasting (preserves action collection)
+            world.broadcast_thought(combined_activation)
             
             # Run simulation following TinyTroupe focus group pattern
             # Single run call with user-specified rounds and capture actions
@@ -619,6 +812,9 @@ class SimulationService:
             # Update simulation status
             self.active_simulations[simulation_id]["status"] = "completed"
             
+            print(f"\n🏁 SIMULATION COMPLETE - {len(interactions)} interactions recorded")
+            print(f"🚀 Final status: completed")
+            
             return SimulationResponse(
                 simulation_id=simulation_id,
                 status="completed",
@@ -632,3 +828,66 @@ class SimulationService:
         except Exception as e:
             self.active_simulations[simulation_id]["status"] = "failed"
             raise Exception(f"Simulation failed: {str(e)}")
+    
+    def _create_persona_specific_inner_thought(self, agent: TinyPerson, simulation_type: str) -> str:
+        """Create persona-specific inner thought to activate authentic voice"""
+        
+        # Extract speech patterns and personality traits
+        speech_patterns = {}
+        personality_info = ""
+        
+        if hasattr(agent, '_specification') and agent._specification:
+            persona = agent._specification.get('persona', {})
+            speech_patterns = persona.get('speech_patterns', {})
+            
+            # Extract key personality elements
+            traits = persona.get('personality', {}).get('traits', [])
+            style = persona.get('style', '')
+            occupation = persona.get('occupation', {})
+            
+            personality_info = f"""
+Your occupation: {occupation.get('title', 'Unknown')} - {occupation.get('description', '')[:100]}...
+Your communication style: {style}
+Key personality traits: {', '.join(traits[:3]) if traits else 'None specified'}"""
+        
+        # Create activation message based on speech patterns
+        activation_parts = [
+            f"🎯 PERSONA ACTIVATION for {agent.name}:",
+            personality_info
+        ]
+        
+        if speech_patterns:
+            activation_parts.extend([
+                "\n🗣️ YOUR AUTHENTIC SPEECH PATTERNS - USE THESE EXTENSIVELY:",
+                f"• Verbal tics: {', '.join(speech_patterns.get('verbal_tics', [])[:5])}",
+                f"• Opening phrases: {', '.join(speech_patterns.get('opening_phrases', [])[:3])}",
+                f"• Transition phrases: {', '.join(speech_patterns.get('transition_phrases', [])[:3])}"
+            ])
+            
+            if 'family_references' in speech_patterns:
+                activation_parts.append(f"• Family references: {', '.join(speech_patterns['family_references'][:3])}")
+            
+            if 'story_starters' in speech_patterns:
+                activation_parts.append(f"• Story starters: {', '.join(speech_patterns['story_starters'][:3])}")
+        else:
+            activation_parts.append("\n⚠️ No specific speech patterns found - be authentic to your character")
+        
+        # Add simulation-specific guidance
+        if simulation_type == "focus_group":
+            activation_parts.extend([
+                "\n💬 FOCUS GROUP BEHAVIOR:",
+                "- Use your natural speech patterns extensively",
+                "- Share personal experiences when relevant", 
+                "- React authentically to others' opinions",
+                "- Don't worry about being 'professional' - be yourself",
+                "- MOST IMPORTANT: Don't just agree with everyone else!"
+            ])
+        else:
+            activation_parts.extend([
+                "\n📝 INDIVIDUAL RESPONSE BEHAVIOR:",
+                "- Use your authentic voice and speech patterns",
+                "- Draw from your personal background and experiences",
+                "- Be honest and genuine in your responses"
+            ])
+        
+        return "\n".join(activation_parts)

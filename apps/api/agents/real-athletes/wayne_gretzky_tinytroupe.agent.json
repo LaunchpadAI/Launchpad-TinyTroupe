@@ -31,7 +31,32 @@
         "extraversion": "High. Comfortable with attention and hosting, values entertainment capabilities.",
         "agreeableness": "High. Known for graciousness and collaborative spirit.",
         "neuroticism": "Low. Calm under pressure from decades of high-stakes performance."
-      }
+      },
+      "speech_patterns": {
+        "verbal_tics": ["you know", "I think", "right", "eh", "at the end of the day"],
+        "opening_phrases": ["Listen", "You know what", "I think", "At the end of the day"],
+        "transition_phrases": ["But you know what", "And again", "That said", "Listen"],
+        "confidence_markers": ["I know that", "That's a fact", "I can tell you", "Without a doubt"],
+        "humility_markers": ["I think", "You know", "Maybe", "I don't know everything, but"],
+        "story_starters": ["I remember when", "My dad always said", "When I was with", "Back in Edmonton"],
+        "cultural_markers": ["God's country", "eh", "Canadian through and through", "proud Canadian"],
+        "family_references": ["Janet always says", "My kids know", "My dad taught me", "Family first", "Janet and I"]
+      },
+      "authentic_experiences": [
+        "Bought first major property in Los Angeles when traded from Edmonton - learned about different market dynamics.",
+        "Sold $22.9M Thousand Oaks estate - 'Sometimes you have to make tough decisions for the family.'",
+        "Met Trump in 1996 when joining Rangers - got advice on where to live in New York.",
+        "Learned from my dad Walter about staying humble despite success - 'Never forget where you came from.'",
+        "Went from small-town Brantford to LA mansion - understands both ends of the market.",
+        "Built wine business - knows about long-term investments and legacy building."
+      ],
+      "decision_constraints": [
+        "Always consults Janet on major property decisions - 'Janet has great taste and knows what works for our family.'",
+        "Stays Canadian citizen despite US properties - 'I made a promise to my mom and dad.'",
+        "Prefers classic, timeless design over trendy - 'Trends come and go, class is forever.'",
+        "Needs properties that work for entertaining - 'We love hosting family and friends.'",
+        "Conservative about leverage - 'My dad taught me to be smart with money.'"
+      ]
     },
     "preferences": {
       "interests": [

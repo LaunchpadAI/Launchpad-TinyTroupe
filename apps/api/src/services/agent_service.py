@@ -185,7 +185,18 @@ class AgentRegistry:
                 file_path = os.path.join(project_root, file_path)
                 file_path = os.path.abspath(file_path)
             
+            print(f"🔧 Loading agent from: {file_path}")
             agent = TinyPerson.load_specification(file_path)
+            
+            # Debug: Check how specification is stored
+            print(f"🔍 Agent attributes: {[attr for attr in dir(agent) if 'spec' in attr.lower()]}")
+            if hasattr(agent, '_specification'):
+                print(f"✅ _specification found")
+            elif hasattr(agent, 'specification'):
+                print(f"✅ specification found (no underscore)")
+            else:
+                print(f"❌ No specification attribute found")
+            
             # Add unique suffix to avoid naming conflicts
             if unique_suffix:
                 agent.name = f"{agent.name}_{unique_suffix}"
@@ -214,6 +225,8 @@ class AgentService:
         self.registry = AgentRegistry(agent_specs_path)
         self.factory = TinyPersonFactory()
         self.validator = TinyPersonValidator()
+        # Session-scoped agent cache: {session_id: {agent_id: agent_instance}}
+        self._session_cache: Dict[str, Dict[str, TinyPerson]] = {}
     
     def list_available_agents(self) -> List[Dict[str, Any]]:
         """Get list of all available agents"""
@@ -224,8 +237,34 @@ class AgentService:
         return self.registry.get_agent_info(agent_id)
     
     def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None, disable_semantic_memory: bool = False) -> TinyPerson:
-        """Load an agent instance with optional unique suffix"""
-        return self.registry.load_agent(agent_id, unique_suffix, disable_semantic_memory)
+        """Load an agent instance with session-scoped caching for consistency"""
+        
+        # If no unique_suffix, use registry directly (backwards compatibility)
+        if not unique_suffix:
+            return self.registry.load_agent(agent_id, unique_suffix, disable_semantic_memory)
+        
+        # Check session cache first - reuse agents within same session
+        session_id = unique_suffix
+        if session_id not in self._session_cache:
+            self._session_cache[session_id] = {}
+            
+        # Return cached agent if already loaded in this session
+        if agent_id in self._session_cache[session_id]:
+            cached_agent = self._session_cache[session_id][agent_id]
+            print(f"♻️  REUSING cached agent: {cached_agent.name} (session: {session_id[:8]}...)")
+            return cached_agent
+        
+        # Load new agent and cache it for this session
+        print(f"🆕 LOADING new agent: {agent_id} (session: {session_id[:8]}...)")
+        agent = self.registry.load_agent(agent_id, unique_suffix, disable_semantic_memory)
+        
+        # Store original agent_id for debugging
+        agent._original_id = agent_id
+        
+        # Cache the agent for this session
+        self._session_cache[session_id][agent_id] = agent
+        
+        return agent
     
     def create_persona_from_agent(self, agent_name: str, new_agent_name: Optional[str] = None) -> TinyPerson:
         """Create a persona from an existing agent"""
@@ -316,3 +355,19 @@ class AgentService:
             "creative": "Values artistic expression and innovation",
             "analytical": "Prefers data-driven decision making"
         }
+    
+    def clear_session_cache(self, session_id: str) -> None:
+        """Clear cached agents for a specific session"""
+        if session_id in self._session_cache:
+            print(f"🗑️  CLEARING session cache for: {session_id[:8]}...")
+            del self._session_cache[session_id]
+    
+    def get_session_cache_info(self) -> Dict[str, Any]:
+        """Get information about current session cache for debugging"""
+        cache_info = {}
+        for session_id, agents in self._session_cache.items():
+            cache_info[session_id[:8]] = {
+                "agent_count": len(agents),
+                "agents": [f"{agent_id} -> {agent.name}" for agent_id, agent in agents.items()]
+            }
+        return cache_info
