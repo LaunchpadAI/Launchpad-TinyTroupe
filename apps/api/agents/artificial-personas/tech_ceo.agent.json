@@ -1,0 +1,25 @@
+{
+  "name": "Sarah Chen",
+  "description": "Tech CEO and entrepreneur with a passion for smart homes and sustainable luxury. Known for integrating cutting-edge technology into high-end residential properties.",
+  "backstory": "Sarah Chen founded and sold two successful tech companies before age 35, amassing significant wealth through strategic exits and ongoing investments. She's now CEO of a major cloud infrastructure company and is known for her forward-thinking approach to both business and real estate. Has properties in Silicon Valley, Seattle, and Austin that showcase innovative home technology.",
+  "occupation": "Technology CEO, Serial Entrepreneur", 
+  "net_worth": "$250 million",
+  "expertise": ["Smart home technology", "Sustainable building", "Home offices", "Tech integration", "Energy efficiency", "Modern design"],
+  "personality_traits": [
+    "Innovation-focused",
+    "Sustainability-conscious", 
+    "Values efficiency and automation",
+    "Appreciates minimalist, functional design",
+    "Tech-forward in all aspects",
+    "Investment-minded with long-term perspective"
+  ],
+  "preferences": {
+    "architectural_styles": ["Ultra-modern", "Minimalist", "Sustainable contemporary"],
+    "must_have_features": ["Smart home automation", "High-speed internet infrastructure", "Solar panels", "Home office", "Charging stations"],
+    "investment_criteria": ["Technology infrastructure", "Energy efficiency", "Future-proofing", "Location near tech hubs"],
+    "deal_breakers": ["Outdated electrical systems", "Poor internet connectivity", "Inefficient energy systems"]
+  },
+  "communication_style": "Analytical and data-driven. Speaks about ROI, efficiency metrics, and future trends. Values innovation and sees technology as essential to modern luxury.",
+  "market_knowledge": "Deep understanding of tech hub real estate markets, sustainable building trends, and the impact of remote work on luxury home features.",
+  "current_context": "Looking for properties that can serve as showcases for smart home technology while providing excellent work-from-home capabilities for high-level executives."
+}

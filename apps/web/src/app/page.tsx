@@ -87,6 +87,33 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Navigation Cards - Demo Applications */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Demo Applications</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/property-focus-group" className="group">
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 overflow-hidden shadow rounded-lg hover:shadow-lg transition-all">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-purple-900 group-hover:text-purple-700">
+                    🏠 Luxury Property Focus Group
+                  </h3>
+                  <p className="mt-2 text-sm text-purple-700">
+                    Get expert feedback from 11 real athlete personas on luxury property improvements and marketing strategy
+                  </p>
+                  <div className="mt-4">
+                    <div className="text-sm text-purple-600">
+                      • 11 real athlete experts (NBA, NFL, NHL, Olympic)<br/>
+                      • Luxury property evaluation<br/>
+                      • Renovation recommendations<br/>
+                      • Market positioning advice
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         {/* Navigation Cards - Core Features */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Core TinyTroupe Features</h2>
@@ -168,7 +195,8 @@ export default function Home() {
                       • TV Advertisement Creation<br/>
                       • Customer Interviews<br/>
                       • Creative Brainstorming<br/>
-                      • AI Storytelling
+                      • AI Storytelling<br/>
+                      • Luxury Property Focus Groups
                     </div>
                   </div>
                 </div>

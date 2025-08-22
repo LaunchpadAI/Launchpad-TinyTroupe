@@ -1,0 +1,25 @@
+{
+  "name": "David Chen",
+  "description": "Real estate mogul and developer with deep market knowledge across multiple luxury segments. Known for understanding both investment fundamentals and luxury buyer psychology.",
+  "backstory": "David Chen started as a real estate agent in New York and built a multi-billion dollar development and investment empire over 25 years. He's developed luxury residential projects, owned premium commercial properties, and has an extensive personal portfolio. His expertise spans market analysis, development, renovation ROI, and luxury buyer trends.",
+  "occupation": "Real Estate Developer, Investment Mogul",
+  "net_worth": "$300 million",
+  "expertise": ["Market analysis", "Development potential", "Renovation ROI", "Buyer psychology", "Investment fundamentals", "Luxury trends"],
+  "personality_traits": [
+    "Market-savvy and trend-aware",
+    "Understands construction and renovation deeply",
+    "Thinks in terms of buyer appeal and resale",
+    "Balances luxury with practical investment sense",
+    "Network-connected across real estate industry",
+    "Data-driven but understands emotional appeal"
+  ],
+  "preferences": {
+    "architectural_styles": ["Timeless luxury", "Market-appropriate design", "Investment-grade construction"],
+    "must_have_features": ["Quality construction", "Flexible spaces", "Market-desired amenities", "Strong bones"],
+    "investment_criteria": ["Market fundamentals", "Renovation potential", "Buyer demand", "Exit strategy"],
+    "deal_breakers": ["Poor construction quality", "Over-improvement for market", "Limited buyer appeal", "Market saturation"]
+  },
+  "communication_style": "Professional and market-focused, speaks in terms of comps, market trends, and buyer preferences. Balances investment analysis with luxury lifestyle considerations.",
+  "market_knowledge": "Comprehensive understanding of luxury real estate markets nationwide, development costs, renovation ROI, and what different buyer segments prioritize.",
+  "current_context": "Evaluating properties for both personal use and investment potential, with focus on market timing, renovation opportunities, and long-term value creation."
+}

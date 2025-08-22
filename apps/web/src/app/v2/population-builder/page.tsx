@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { usePopulations } from '@/hooks/useApi';
-import { CreatePopulationRequest } from '@/lib/api-client';
+import { TinyTroupeApiClient } from '@tinytroupe/api-client';
 
 interface PopulationSegment {
   id: string;
@@ -25,7 +24,7 @@ interface DemographicTemplate {
   available: boolean;
 }
 
-const PERSONALITY_FRAGMENTS = [
+const DEFAULT_PERSONALITY_FRAGMENTS = [
   { id: 'health_conscious', name: 'Health Conscious', description: 'Focuses on wellness and healthy lifestyle choices', color: 'green' },
   { id: 'price_sensitive', name: 'Price Sensitive', description: 'Values cost-effectiveness and deals', color: 'red' },
   { id: 'tech_savvy', name: 'Tech Savvy', description: 'Comfortable with technology and digital solutions', color: 'blue' },
@@ -98,10 +97,35 @@ export default function PopulationBuilder() {
   
   const [editingSegment, setEditingSegment] = useState<PopulationSegment | null>(null);
   const [showAddSegment, setShowAddSegment] = useState(false);
+  const [availableFragments, setAvailableFragments] = useState(DEFAULT_PERSONALITY_FRAGMENTS);
+  const [loadingFragments, setLoadingFragments] = useState(false);
 
   const totalSegmentSize = segments.reduce((sum, segment) => sum + segment.size, 0);
   const costPerAgent = 0.15; // $0.15 per agent
   const estimatedCost = totalSize * costPerAgent;
+
+  useEffect(() => {
+    loadAvailableFragments();
+  }, []);
+
+  const loadAvailableFragments = async () => {
+    setLoadingFragments(true);
+    try {
+      const fragmentsResponse = await client.getAvailableFragments();
+      const apiFragments = fragmentsResponse.available_fragments.map((frag, index) => ({
+        id: frag.id,
+        name: frag.name,
+        description: frag.description,
+        color: DEFAULT_PERSONALITY_FRAGMENTS[index % DEFAULT_PERSONALITY_FRAGMENTS.length]?.color || 'gray'
+      }));
+      setAvailableFragments(apiFragments);
+    } catch (error) {
+      console.error('Failed to load fragments from API, using defaults:', error);
+      // Keep default fragments on error
+    } finally {
+      setLoadingFragments(false);
+    }
+  };
 
   const handleSizeChange = (segmentId: string, newSize: number) => {
     setSegments(prev => 
@@ -140,7 +164,10 @@ export default function PopulationBuilder() {
     setSegments(prev => prev.filter(segment => segment.id !== segmentId));
   };
 
-  const { createPopulation, loading: creatingPopulation, error: creationError } = usePopulations();
+  const [creatingPopulation, setCreatingPopulation] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+  
+  const client = new TinyTroupeApiClient();
 
   const generatePopulation = async () => {
     if (!selectedTemplate) {
@@ -148,33 +175,37 @@ export default function PopulationBuilder() {
       return;
     }
 
+    setCreatingPopulation(true);
+    setCreationError(null);
+
     try {
-      const request: CreatePopulationRequest = {
+      const populationData = {
         name: `Population-${selectedTemplate.name}-${Date.now()}`,
-        demographic_template: selectedTemplate.id as any,
-        total_size: totalSize,
+        size: totalSize,
+        demographic_template: selectedTemplate.id,
         segments: segments.map(segment => ({
           name: segment.name,
-          size: segment.size,
+          percentage: (segment.size / totalSize) * 100,
           age_range: segment.age_range,
           income_level: segment.income_level,
           location: segment.location,
-          particularities: segment.particularities,
           fragments: segment.fragments
-        })),
-        context: `Generated via v2 frontend for ${selectedTemplate.name} demographics`
+        }))
       };
 
-      const population = await createPopulation(request);
+      const population = await client.createPopulation(populationData);
       
-      alert(`Population created successfully!\n\nPopulation ID: ${population.population_id}\nName: ${population.name}\nSize: ${population.size} agents\nTemplate: ${selectedTemplate.name}`);
+      alert(`Population created successfully!\n\nPopulation ID: ${population.population_id}\nAgents Created: ${population.agents.length}\nTemplate: ${selectedTemplate.name}`);
       
       // Reset form
       setSegments([]);
       setTotalSize(100);
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error occurred';
+      setCreationError(errorMessage);
       console.error('Failed to create population:', error);
-      alert(`Failed to create population: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setCreatingPopulation(false);
     }
   };
 
@@ -361,7 +392,7 @@ export default function PopulationBuilder() {
                         <span className="font-medium text-gray-500 text-sm mb-2 block">Personality Traits:</span>
                         <div className="flex flex-wrap gap-2">
                           {segment.fragments.map((fragmentId) => {
-                            const fragment = PERSONALITY_FRAGMENTS.find(f => f.id === fragmentId);
+                            const fragment = availableFragments.find(f => f.id === fragmentId);
                             return fragment ? (
                               <span
                                 key={fragmentId}
@@ -429,27 +460,34 @@ export default function PopulationBuilder() {
               <h3 className="text-xl font-bold text-gray-900 mb-4">Personality Traits</h3>
               
               <div className="space-y-3">
-                {PERSONALITY_FRAGMENTS.slice(0, 8).map((fragment) => {
-                  const usageCount = segments.reduce((count, segment) => 
-                    count + (segment.fragments.includes(fragment.id) ? segment.size : 0), 0
-                  );
-                  const percentage = totalSegmentSize > 0 ? (usageCount / totalSegmentSize) * 100 : 0;
-                  
-                  return (
-                    <div key={fragment.id}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{fragment.name}</span>
-                        <span className="font-medium">{usageCount} agents</span>
+                {loadingFragments ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                    <p className="text-sm text-gray-500 mt-2">Loading fragments...</p>
+                  </div>
+                ) : (
+                  availableFragments.slice(0, 8).map((fragment) => {
+                    const usageCount = segments.reduce((count, segment) => 
+                      count + (segment.fragments.includes(fragment.id) ? segment.size : 0), 0
+                    );
+                    const percentage = totalSegmentSize > 0 ? (usageCount / totalSegmentSize) * 100 : 0;
+                    
+                    return (
+                      <div key={fragment.id}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700">{fragment.name}</span>
+                          <span className="font-medium">{usageCount} agents</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`bg-${fragment.color}-500 h-2 rounded-full`}
+                            style={{ width: `${Math.max(2, percentage)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`bg-${fragment.color}-500 h-2 rounded-full`}
-                          style={{ width: `${Math.max(2, percentage)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -511,6 +549,7 @@ export default function PopulationBuilder() {
             <div className="p-6">
               <SegmentEditor
                 segment={editingSegment}
+                availableFragments={availableFragments}
                 onSave={handleSegmentUpdate}
                 onCancel={() => setEditingSegment(null)}
               />
@@ -525,10 +564,12 @@ export default function PopulationBuilder() {
 // Segment Editor Component
 function SegmentEditor({ 
   segment, 
+  availableFragments,
   onSave, 
   onCancel 
 }: { 
-  segment: PopulationSegment; 
+  segment: PopulationSegment;
+  availableFragments: typeof DEFAULT_PERSONALITY_FRAGMENTS;
   onSave: (segment: PopulationSegment) => void; 
   onCancel: () => void; 
 }) {
@@ -621,7 +662,7 @@ function SegmentEditor({
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-4">Personality Fragments</label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {PERSONALITY_FRAGMENTS.map((fragment) => (
+          {availableFragments.map((fragment) => (
             <label key={fragment.id} className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"

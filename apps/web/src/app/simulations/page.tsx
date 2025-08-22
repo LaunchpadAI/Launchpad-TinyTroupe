@@ -125,11 +125,36 @@ export default function SimulationsPage() {
 
   const [mode, setMode] = useState<'workflow' | 'developer'>('workflow');
   const [interventionConfig, setInterventionConfig] = useState<any>(null);
+  const [interventionResults, setInterventionResults] = useState<any>(null);
+  const [interventionLoading, setInterventionLoading] = useState(false);
 
-  const handleInterventionCreate = (config: any) => {
+  const handleInterventionCreate = async (config: any) => {
     setInterventionConfig(config);
-    console.log('Intervention created:', config);
-    // TODO: Integrate with API
+    setInterventionLoading(true);
+    setInterventionResults(null);
+    
+    try {
+      // Convert intervention config to v1 API format
+      const interventionRequest = {
+        name: config.name,
+        variants: config.variants,
+        participants: {
+          mode: 'from_agent' as const,
+          specifications: ['lisa', 'oscar', 'marcos'] // Use all available agents
+        },
+        targeting: config.targeting,
+        timing: config.timing,
+        success_metrics: config.success_metrics
+      };
+
+      const result = await client.createInterventionTest(interventionRequest);
+      setInterventionResults(result);
+    } catch (err: any) {
+      setError(`Intervention test failed: ${err.message}`);
+      console.error('Intervention error:', err);
+    } finally {
+      setInterventionLoading(false);
+    }
   };
 
   return (
@@ -180,7 +205,9 @@ export default function SimulationsPage() {
           <WorkflowBuilderInterface 
             onInterventionCreate={handleInterventionCreate}
             interventionConfig={interventionConfig}
-            results={results}
+            interventionResults={interventionResults}
+            interventionLoading={interventionLoading}
+            error={error}
           />
         ) : (
           <DeveloperTestingInterface 
@@ -210,11 +237,15 @@ export default function SimulationsPage() {
 function WorkflowBuilderInterface({ 
   onInterventionCreate, 
   interventionConfig, 
-  results 
+  interventionResults,
+  interventionLoading,
+  error
 }: { 
   onInterventionCreate: (config: any) => void;
   interventionConfig: any;
-  results: any;
+  interventionResults: any;
+  interventionLoading: boolean;
+  error: string | null;
 }) {
   return (
     <div className="space-y-8">
@@ -254,14 +285,87 @@ function WorkflowBuilderInterface({
         </div>
       )}
 
-      {/* Results */}
-      {results && (
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="text-red-600">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Intervention Test Failed</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {interventionLoading && (
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Intervention Results</h2>
+            <h2 className="text-lg font-medium text-gray-900">Running Intervention Test</h2>
           </div>
           <div className="p-6">
-            <ResultsDashboard results={results} />
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Testing intervention variants...</p>
+              <p className="text-sm text-gray-500">This may take 3-5 minutes for multiple variants</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {interventionResults && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Intervention Test Results</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Test ID: {interventionResults.intervention_id} • Status: {interventionResults.status}
+            </p>
+          </div>
+          <div className="p-6">
+            {interventionResults.results && interventionResults.results.length > 0 ? (
+              <div className="space-y-6">
+                {/* Variant Comparison */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {interventionResults.results.map((variant: any, index: number) => (
+                    <div key={variant.variant_id} className="border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-2">{variant.variant_name}</h4>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p><strong>Simulation ID:</strong> {variant.simulation_id}</p>
+                        <p><strong>Status:</strong> <span className="text-green-600">{variant.status}</span></p>
+                        <p><strong>Participants:</strong> {variant.participants?.length || 'N/A'}</p>
+                      </div>
+                      
+                      {variant.results && (
+                        <div className="mt-3 bg-gray-50 p-3 rounded">
+                          <div className="text-xs text-gray-700">
+                            <p><strong>Results Available:</strong> Yes</p>
+                            <p><strong>Interactions:</strong> {variant.interactions?.length || 0}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Detailed Results */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Complete Results Data</h4>
+                  <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-96 text-gray-900">
+                    {JSON.stringify(interventionResults, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No detailed results available yet</p>
+              </div>
+            )}
           </div>
         </div>
       )}

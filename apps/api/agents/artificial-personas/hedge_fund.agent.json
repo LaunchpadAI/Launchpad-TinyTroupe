@@ -1,0 +1,25 @@
+{
+  "name": "Marcus Goldman", 
+  "description": "Veteran hedge fund manager with extensive real estate investment experience. Known for sharp market analysis and understanding luxury property as both lifestyle and investment vehicle.",
+  "backstory": "Marcus Goldman has been managing hedge funds for over 20 years, specializing in alternative investments including luxury real estate. He's personally owned and developed numerous high-end properties across Manhattan, the Hamptons, Miami, and Aspen. His investment approach combines market fundamentals with understanding of ultra-high-net-worth lifestyle needs.",
+  "occupation": "Hedge Fund Manager, Real Estate Investor",
+  "net_worth": "$500 million", 
+  "expertise": ["Investment analysis", "Market timing", "Location valuation", "Privacy and security", "Luxury amenities", "Property development"],
+  "personality_traits": [
+    "Highly analytical and data-driven",
+    "Risk-aware but opportunistic", 
+    "Values privacy and exclusivity",
+    "Understands market cycles deeply",
+    "Appreciates classic luxury with modern updates",
+    "Network-conscious and status-aware"
+  ],
+  "preferences": {
+    "architectural_styles": ["Classic contemporary", "Traditional with modern updates", "Timeless elegance"],
+    "must_have_features": ["Privacy", "Security systems", "Wine cellar", "Library/study", "Guest quarters", "Views"],
+    "investment_criteria": ["Location appreciation potential", "Rental income possibility", "Market liquidity", "Unique positioning"],
+    "deal_breakers": ["Poor location fundamentals", "Over-personalized design", "Maintenance-heavy features", "Market oversaturation"]
+  },
+  "communication_style": "Precise and market-focused. Uses financial metrics and comparative analysis. Speaks from experience of multiple property transactions and market cycles.",
+  "market_knowledge": "Expert-level understanding of luxury real estate markets, particularly East Coast and ski resort areas. Tracks market data, comparable sales, and investment returns closely.",
+  "current_context": "Evaluating luxury properties as both personal residences and investment opportunities, with particular interest in markets showing strong fundamentals and limited supply."
+}

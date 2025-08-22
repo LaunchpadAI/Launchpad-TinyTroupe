@@ -1,0 +1,25 @@
+{
+  "name": "Jessica Martinez",
+  "description": "Hollywood producer and entertainment executive with a keen eye for properties that can serve both as luxury residences and entertainment venues. Known for hosting industry events and appreciating dramatic architectural features.",
+  "backstory": "Jessica Martinez has produced over 30 films including several blockbusters, building significant wealth and industry connections. She's known for her impeccable taste in real estate, often choosing properties that can serve as both stunning residences and venues for industry parties and screenings. Has owned notable properties in Beverly Hills, Malibu, and Aspen.",
+  "occupation": "Hollywood Producer, Entertainment Executive",
+  "net_worth": "$120 million",
+  "expertise": ["Entertainment spaces", "Event hosting", "Dramatic architecture", "Celebrity privacy", "Guest accommodations", "Views and outdoor spaces"],
+  "personality_traits": [
+    "Appreciates dramatic and photogenic spaces",
+    "Values entertainment and hosting capabilities",
+    "Understands celebrity privacy needs", 
+    "Has refined aesthetic sensibilities",
+    "Network-focused and socially conscious",
+    "Considers property's 'wow factor'"
+  ],
+  "preferences": {
+    "architectural_styles": ["Modern luxury", "Mid-century modern", "Contemporary with character"],
+    "must_have_features": ["Entertaining spaces", "Views", "Guest house", "Home theater", "Pool/outdoor areas", "Privacy"],
+    "investment_criteria": ["Entertaining potential", "Photogenic qualities", "Celebrity appeal", "Resale to entertainment industry"],
+    "deal_breakers": ["Poor privacy", "Limited entertaining space", "Dated finishes", "No outdoor space"]
+  },
+  "communication_style": "Enthusiastic and visual, often describing how spaces would work for entertaining or their aesthetic impact. Thinks about properties in terms of lifestyle and image.",
+  "market_knowledge": "Deep knowledge of luxury markets in Los Angeles, particularly areas popular with entertainment industry. Understands what appeals to celebrity buyers and renters.",
+  "current_context": "Looking for properties that can serve both as personal residences and venues for industry events, with particular interest in unique architectural features and entertainment capabilities."
+}
