@@ -23,11 +23,6 @@ from .persona import (
 )
 
 from .simulation import (
-    ParticipantConfig,
-    InteractionConfig,
-    StimulusConfig,
-    ExtractionConfig,
-    SimulationRequest,
     SimulationResponse,
 )
 
@@ -83,11 +78,6 @@ __all__ = [
     "GroundedPersonaRequest",
     
     # Simulation models
-    "ParticipantConfig",
-    "InteractionConfig",
-    "StimulusConfig",
-    "ExtractionConfig",
-    "SimulationRequest",
     "SimulationResponse",
     
     # World models

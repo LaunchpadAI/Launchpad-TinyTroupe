@@ -12,7 +12,7 @@ from tinytroupe.extraction import ResultsExtractor, ResultsReducer
 from tinytroupe.agent import TinyPerson
 import tinytroupe.control as control
 
-from ..models.simulation import SimulationRequest, SimulationRequestLegacy, SimulationResponse, ParticipantConfig
+from ..models.simulation import SimulationRequest, SimulationResponse
 
 
 class SimulationService:
@@ -26,92 +26,211 @@ class SimulationService:
         import os
         os.makedirs("cache/sessions", exist_ok=True)
     
-    def run_simulation(self, request: SimulationRequest, agents: List[TinyPerson]) -> SimulationResponse:
-        """Run a complete simulation with the given parameters"""
-        simulation_id = str(uuid.uuid4())
-        session_cache_file = f"cache/sessions/sim_{simulation_id}.json"
+    
+    def _convert_actions_to_interactions(self, actions_over_time: List[Dict], conversation_content: str) -> List[Dict[str, Any]]:
+        """Extract clean interactions from TinyTroupe's chronological action data"""
+        interactions = []
         
+        # Use actions_over_time for accurate chronological order if available
+        if actions_over_time:
+            print(f"DEBUG: Using TinyTroupe's chronological action data ({len(actions_over_time)} actions)")
+            interactions = self._parse_actions_chronologically(actions_over_time)
+        else:
+            # Fallback to parsing formatted output (less accurate for conversation flow)
+            print(f"DEBUG: Fallback to parsing formatted conversation content")
+            print(f"DEBUG: Conversation content length: {len(conversation_content) if conversation_content else 0}")
+            
+            if conversation_content:
+                interactions = self._parse_tinytroupe_formatted_output(conversation_content)
+        
+        return interactions
+    
+    def _parse_actions_chronologically(self, actions_over_time: List[Dict]) -> List[Dict[str, Any]]:
+        """Parse TinyTroupe's chronological action data to preserve conversation flow"""
+        interactions = []
+        
+        print(f"DEBUG: Processing {len(actions_over_time)} chronological actions")
+        
+        # TinyTroupe structure: [{agent_name: [{action: {type: 'TALK', content: '...'}, ...}, ...]}, ...]
+        # We need to extract all TALK actions in chronological order across all agents and rounds
+        
+        for round_number, round_data in enumerate(actions_over_time, 1):
+            # round_data is a dict like {'Tony Parker_xxx': [...], 'Kenny Pickett_xxx': [...]}
+            if isinstance(round_data, dict):
+                # Collect all TALK actions from all agents in this round
+                round_talks = []
+                
+                for agent_name, agent_actions in round_data.items():
+                    if isinstance(agent_actions, list):
+                        for action_data in agent_actions:
+                            if isinstance(action_data, dict) and 'action' in action_data:
+                                action = action_data['action']
+                                if isinstance(action, dict) and action.get('type') == 'TALK':
+                                    # Clean agent name (remove unique suffix)
+                                    import re
+                                    clean_agent_name = re.sub(r'_[a-f0-9]{8}$', '', agent_name)
+                                    
+                                    content = action.get('content', '').strip()
+                                    if len(content) > 10:  # Only meaningful content
+                                        round_talks.append({
+                                            "round": round_number,
+                                            "agent": clean_agent_name,
+                                            "content": content,
+                                            "timestamp": datetime.now().isoformat(),
+                                            "type": "agent_contribution",
+                                            "action_type": "TALK"
+                                        })
+                
+                # Add all talks from this round in agent order (preserves TinyTroupe's natural flow)
+                interactions.extend(round_talks)
+        
+        print(f"DEBUG: Extracted {len(interactions)} chronological interactions from actions")
+        return interactions
+    
+    def _is_talk_action(self, action: Dict) -> bool:
+        """Check if action is a TALK action"""
+        if not isinstance(action, dict):
+            return False
+        
+        # Check for TinyTroupe action structure
+        action_type = action.get('type', '').upper()
+        action_name = action.get('action', {}).get('type', '').upper() if isinstance(action.get('action'), dict) else ''
+        
+        return action_type == 'TALK' or action_name == 'TALK'
+    
+    def _extract_interaction_from_action(self, action: Dict, round_number: int) -> Dict[str, Any]:
+        """Extract interaction data from a TinyTroupe action"""
         try:
-            # Start session-scoped cache
-            control.begin(cache_file=session_cache_file, cache=True)
+            # Extract agent name (clean of unique suffixes)
+            agent_name = action.get('agent', action.get('source', 'Unknown'))
+            # Remove unique suffix pattern (e.g., "_a1b2c3d4")
+            import re
+            clean_agent_name = re.sub(r'_[a-f0-9]{8}$', '', agent_name)
             
-            # Create world and add agents
-            world = TinyWorld(f"Simulation_{simulation_id}")
-            for agent in agents:
-                world.add_agent(agent)
+            # Extract action content
+            content = ''
+            if 'action' in action and isinstance(action['action'], dict):
+                # Structured action format
+                content = action['action'].get('content', action['action'].get('text', ''))
+            else:
+                # Direct content format
+                content = action.get('content', action.get('text', ''))
             
-            # Store simulation state
-            self.active_simulations[simulation_id] = {
-                "world": world,
-                "request": request,
-                "status": "running",
-                "started_at": datetime.now(),
-                "interactions": []
+            if not content or len(content.strip()) < 10:
+                return None
+            
+            return {
+                "round": round_number,
+                "agent": clean_agent_name,
+                "content": content.strip(),
+                "timestamp": action.get('timestamp', datetime.now().isoformat()),
+                "type": "agent_contribution",
+                "action_type": "TALK"
             }
             
-            # Present stimulus
-            world.broadcast(request.stimulus.content)
-            
-            # Run interaction rounds
-            interactions = []
-            for round_num in range(request.interaction.max_rounds):
-                world.run(1)
-                
-                # Capture interactions
-                round_interactions = world.get_agent_interactions()
-                interactions.extend(round_interactions)
-                
-                # Store in simulation state
-                self.active_simulations[simulation_id]["interactions"].extend(round_interactions)
-            
-            # Extract results following TinyTroupe patterns
-            extracted_results = None
-            checkpoint_name = None
-            
-            if request.extraction.extract_results:
-                try:
-                    extracted_results = self._extract_results(
-                        agents,
-                        request.extraction.extraction_objective,
-                        request.extraction.result_type
-                    )
-                    print(f"DEBUG: Results extraction completed")
-                except Exception as e:
-                    print(f"DEBUG: Results extraction failed: {str(e)}")
-                    raise
-            
-            # Optional: Create a checkpoint for state preservation
-            # (Not needed for extraction, but useful for resuming simulations)
-            if hasattr(request.extraction, 'save_checkpoint') and request.extraction.save_checkpoint:
-                checkpoint_name = f"sim_{simulation_id}_checkpoint"
-                try:
-                    control.checkpoint(checkpoint_name)
-                    print(f"DEBUG: Checkpoint saved: {checkpoint_name}")
-                except Exception as e:
-                    print(f"DEBUG: Checkpoint creation failed: {str(e)}")
-                    # Don't fail the simulation if checkpoint fails
-                    checkpoint_name = None
-            
-            # Update simulation status
-            self.active_simulations[simulation_id]["status"] = "completed"
-            
-            return SimulationResponse(
-                simulation_id=simulation_id,
-                status="completed",
-                checkpoint_name=checkpoint_name,
-                interactions=interactions,
-                extracted_results=extracted_results
-            )
-            
         except Exception as e:
-            self.active_simulations[simulation_id]["status"] = "failed"
-            raise Exception(f"Simulation failed: {str(e)}")
-        finally:
-            # Always end the session to clean up
-            try:
-                control.end()
-            except:
-                pass
+            print(f"DEBUG: Error extracting interaction from action: {str(e)}")
+            return None
+    
+    def _parse_tinytroupe_formatted_output(self, conversation_content: str) -> List[Dict[str, Any]]:
+        """Parse TinyTroupe's Rich-formatted pretty_current_interactions output"""
+        import re
+        interactions = []
+        
+        if not conversation_content:
+            return interactions
+        
+        # Remove ANSI escape codes from Rich formatting
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        clean_content = ansi_escape.sub('', conversation_content)
+        
+        # Remove Rich styling markup but preserve action tags like [TALK], [DONE], [THINK]
+        # Remove tags like [bold green3], [underline], [/] but keep [TALK], [DONE], etc.
+        style_markup = re.compile(r'\[(?!(?:TALK|DONE|THINK|LISTEN)\])[^]]*\]')
+        clean_content = style_markup.sub('', clean_content)
+        
+        # Debug: Show more context around "acts" lines to understand content structure
+        lines = clean_content.split('\n')
+        acts_line_indices = [i for i, line in enumerate(lines) if 'acts' in line.lower()][:5]
+        
+        for i in acts_line_indices:
+            context_start = max(0, i-2)
+            context_end = min(len(lines), i+5)
+            context_lines = lines[context_start:context_end]
+            print(f"DEBUG: Context around acts line {i}: {context_lines}")
+        
+        # TinyTroupe's _pretty_action creates patterns like:
+        # "Agent Name acts: [TALK] \n                          > content line 1\n                          > content line 2\n..."
+        # Capture all lines that start with whitespace and '>' after [TALK]
+        
+        talk_action_pattern = r'([A-Za-z\s]+?)(?:_[a-f0-9]{8})?\s+acts:\s*\[TALK\]\s*\n((?:\s*>\s*[^\n]*\n?)+)'
+        talk_matches = re.findall(talk_action_pattern, clean_content, re.MULTILINE | re.DOTALL)
+        
+        print(f"DEBUG: Found {len(talk_matches)} TALK actions in formatted output")
+        
+        for i, (agent_name, content) in enumerate(talk_matches, 1):
+            # Clean up agent name and content
+            clean_agent_name = agent_name.strip()
+            
+            # Process multi-line indented content: remove '>' markers and join lines
+            content_lines = []
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.startswith('>'):
+                    content_lines.append(line[1:].strip())
+                elif line:  # Non-empty line without '>'
+                    content_lines.append(line)
+            
+            clean_content = ' '.join(content_lines).strip()
+            
+            if len(clean_content) > 10:  # Only meaningful content
+                print(f"DEBUG: Extracted TALK from {clean_agent_name}: {clean_content[:50]}...")
+                interactions.append({
+                    "round": i,  # NOTE: This is sequential, not true conversation rounds (fallback only)
+                    "agent": clean_agent_name,
+                    "content": clean_content,
+                    "timestamp": datetime.now().isoformat(),
+                    "type": "agent_contribution",
+                    "action_type": "TALK"
+                })
+        
+        print(f"DEBUG: Total TinyTroupe-formatted interactions extracted: {len(interactions)}")
+        return interactions
+    
+    def _parse_conversation_fallback(self, conversation_content: str) -> List[Dict[str, Any]]:
+        """Fallback parser for when action data is not available"""
+        import re
+        
+        if not conversation_content:
+            return []
+            
+        # Simple extraction of agent TALK actions from pretty output
+        # Look for patterns like "Agent acts: [TALK] content"
+        talk_pattern = r'([^\n]+) acts: \[TALK\]\s*\n\s*>\s*([^>]*?)(?=\n[A-Z]|\n\n|\Z)'
+        matches = re.findall(talk_pattern, conversation_content, re.MULTILINE | re.DOTALL)
+        
+        interactions = []
+        for i, (agent_line, content) in enumerate(matches, 1):
+            # Extract clean agent name
+            agent_match = re.search(r'([A-Za-z\s]+?)(?:_[a-f0-9]{8})?$', agent_line.strip())
+            if agent_match:
+                clean_agent_name = agent_match.group(1).strip()
+                
+                # Clean up content
+                clean_content = re.sub(r'\s*>\s*', ' ', content)
+                clean_content = ' '.join(clean_content.split())  # Normalize whitespace
+                
+                if len(clean_content) > 10:  # Only meaningful content
+                    interactions.append({
+                        "round": i,
+                        "agent": clean_agent_name,
+                        "content": clean_content,
+                        "timestamp": datetime.now().isoformat(),
+                        "type": "agent_contribution",
+                        "action_type": "TALK"
+                    })
+        
+        return interactions
     
     def _extract_results(self, agents: List[TinyPerson], objective: str, result_type: str) -> Dict[str, Any]:
         """Extract structured results from simulation following TinyTroupe patterns"""
@@ -125,12 +244,38 @@ class SimulationService:
             print(f"DEBUG: Extracting results from agent: {rapporteur.name}")
             print(f"DEBUG: Extraction objective: {objective}")
             
-            # First, ask the rapporteur to consolidate the discussion
-            consolidation_prompt = (
-                "Can you please consolidate the discussion and opinions that were shared? "
-                "Provide detailed insights on each perspective, including key points and concerns."
-            )
-            rapporteur.listen_and_act(consolidation_prompt)
+            # Handle Document.text property setter issues without modifying TinyTroupe
+            # We'll temporarily disable semantic memory to avoid the read-only Document.text property issue
+            original_semantic_memory = None
+            original_disable_semantic = getattr(rapporteur, '_disable_semantic_memory', False)
+            
+            try:
+                # If agent has semantic memory, temporarily disable it to avoid Document.text errors
+                if hasattr(rapporteur, 'semantic_memory') and rapporteur.semantic_memory is not None:
+                    original_semantic_memory = rapporteur.semantic_memory
+                    rapporteur.semantic_memory = None
+                    # Also set the disable flag if it exists
+                    if hasattr(rapporteur, '_disable_semantic_memory'):
+                        rapporteur._disable_semantic_memory = True
+                
+                # First, ask the rapporteur to consolidate the discussion
+                consolidation_prompt = (
+                    "Can you please consolidate the discussion and opinions that were shared? "
+                    "Provide detailed insights on each perspective, including key points and concerns."
+                )
+                rapporteur.listen_and_act(consolidation_prompt)
+                
+            except Exception as doc_error:
+                # If we still get Document errors, catch them and continue with extraction
+                print(f"DEBUG: Document consolidation failed, continuing with extraction: {str(doc_error)}")
+                # Don't re-raise - we can still try extraction without consolidation
+                
+            finally:
+                # Restore original semantic memory state
+                if original_semantic_memory is not None:
+                    rapporteur.semantic_memory = original_semantic_memory
+                if hasattr(rapporteur, '_disable_semantic_memory'):
+                    rapporteur._disable_semantic_memory = original_disable_semantic
             
             # Extract results from the rapporteur agent (TinyTroupe pattern from examples)
             extraction_results = self.extractor.extract_results_from_agent(
@@ -382,7 +527,7 @@ class SimulationService:
             return True
         return False
     
-    def run_legacy_simulation(self, request: SimulationRequestLegacy, agents: List[TinyPerson]) -> SimulationResponse:
+    def run_simulation(self, request: SimulationRequest, agents: List[TinyPerson]) -> SimulationResponse:
         """Run simulation following TinyTroupe example patterns exactly"""
         simulation_id = str(uuid.uuid4())
         
@@ -424,24 +569,15 @@ class SimulationService:
             
             world.broadcast_thought(inner_thought)
             
-            # Run simulation following TinyTroupe pattern - single run call
-            world.run(request.interaction_config.rounds)
+            # Run simulation following TinyTroupe focus group pattern
+            # Single run call with user-specified rounds and capture actions
+            actions_over_time = world.run(request.interaction_config.rounds, return_actions=True)
             
-            # Extract interactions from agent memories
-            interactions = []
-            for i, agent in enumerate(agents):
-                if hasattr(agent, 'episodic_memory') and agent.episodic_memory.retrieve_all():
-                    memories = agent.episodic_memory.retrieve_all()
-                    for j, memory in enumerate(memories):
-                        interaction = {
-                            "round": 1,  # TinyTroupe doesn't track rounds this way
-                            "agent": agent.name,
-                            "content": str(memory),
-                            "timestamp": datetime.now().isoformat(),
-                            "memory_index": j
-                        }
-                        interactions.append(interaction)
-                        self.active_simulations[simulation_id]["interactions"].append(interaction)
+            # Get the full conversation content for UI display
+            conversation_content = world.pretty_current_interactions(simplified=True, skip_system=True)
+            
+            # Convert actions to interactions format for API compatibility
+            interactions = self._convert_actions_to_interactions(actions_over_time, conversation_content)
             
             # Extract results if requested
             extracted_results = None

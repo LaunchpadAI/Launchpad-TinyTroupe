@@ -329,6 +329,26 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Professional Interface Access */}
+        <div className="mt-16">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-8 text-white text-center">
+            <h3 className="text-2xl font-bold mb-4">Ready for Professional Workflows?</h3>
+            <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+              Experience the advanced TinyTroupe Platform v2 with drag-and-drop simulation designer, 
+              advanced population builder, and comprehensive analytics suite.
+            </p>
+            <Link 
+              href="/v2"
+              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors shadow-lg"
+            >
+              <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Launch TinyTroupe Platform v2
+            </Link>
+          </div>
+        </div>
       </main>
     </div>
   );

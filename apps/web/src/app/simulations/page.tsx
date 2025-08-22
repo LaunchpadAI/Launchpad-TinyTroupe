@@ -6,6 +6,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TinyTroupeApiClient } from '@tinytroupe/api-client';
+import clsx from 'clsx';
+import InterventionDesigner from '../../components/InterventionDesigner';
+import ResultsDashboard from '../../components/ResultsDashboard';
 
 const simulationSchema = z.object({
   simulation_type: z.enum(['individual_interaction', 'focus_group', 'social_simulation']),
@@ -61,7 +64,7 @@ export default function SimulationsPage() {
       const apiRequest = {
         simulation_type: data.simulation_type,
         participants: {
-          mode: 'existing_agents',
+          mode: 'existing_agents' as const,
           specifications: data.participants
         },
         interaction_config: {
@@ -80,7 +83,7 @@ export default function SimulationsPage() {
         extraction_config: {
           objective: data.interaction_goal || 'Extract participant responses and insights',
           fields: ['response', 'sentiment', 'key_points', 'decisions'],
-          output_format: 'structured',
+          output_format: 'structured' as const,
           statistical_analysis: true
         }
       };
@@ -120,6 +123,15 @@ export default function SimulationsPage() {
 
   const maxParticipants = simulationType === 'individual_interaction' ? 1 : simulationType === 'focus_group' ? 6 : 8;
 
+  const [mode, setMode] = useState<'workflow' | 'developer'>('workflow');
+  const [interventionConfig, setInterventionConfig] = useState<any>(null);
+
+  const handleInterventionCreate = (config: any) => {
+    setInterventionConfig(config);
+    console.log('Intervention created:', config);
+    // TODO: Integrate with API
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -130,20 +142,158 @@ export default function SimulationsPage() {
               <h1 className="text-3xl font-bold text-gray-900">Simulation Testing</h1>
               <p className="mt-2 text-gray-600">Test focus groups, individual interactions, and social simulations</p>
             </div>
-            <Link href="/" className="text-blue-600 hover:text-blue-500">
-              ← Back to Dashboard
-            </Link>
+            <div className="flex items-center space-x-4">
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => setMode('workflow')}
+                  className={clsx(
+                    'px-3 py-2 rounded-md text-sm font-medium',
+                    mode === 'workflow' 
+                      ? 'bg-purple-100 text-purple-800' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  )}
+                >
+                  🎯 Workflow Builder
+                </button>
+                <button 
+                  onClick={() => setMode('developer')}
+                  className={clsx(
+                    'px-3 py-2 rounded-md text-sm font-medium',
+                    mode === 'developer' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  )}
+                >
+                  🔧 API Testing
+                </button>
+              </div>
+              <Link href="/" className="text-blue-600 hover:text-blue-500">
+                ← Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {mode === 'workflow' ? (
+          <WorkflowBuilderInterface 
+            onInterventionCreate={handleInterventionCreate}
+            interventionConfig={interventionConfig}
+            results={results}
+          />
+        ) : (
+          <DeveloperTestingInterface 
+            handleSubmit={handleSubmit}
+            onSubmit={onSubmit}
+            register={register}
+            errors={errors}
+            setValue={setValue}
+            watch={watch}
+            isLoading={isLoading}
+            error={error}
+            results={results}
+            selectedParticipants={selectedParticipants}
+            simulationType={simulationType}
+            maxParticipants={maxParticipants}
+            toggleParticipant={toggleParticipant}
+            loadFocusGroupTemplate={loadFocusGroupTemplate}
+            loadIndividualTemplate={loadIndividualTemplate}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+// Workflow Builder Interface Component
+function WorkflowBuilderInterface({ 
+  onInterventionCreate, 
+  interventionConfig, 
+  results 
+}: { 
+  onInterventionCreate: (config: any) => void;
+  interventionConfig: any;
+  results: any;
+}) {
+  return (
+    <div className="space-y-8">
+      {/* Intervention Designer */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Intervention Testing Setup</h2>
+          <p className="text-sm text-gray-600 mt-1">Design A/B tests to measure response differences</p>
+        </div>
+        <div className="p-6">
+          <InterventionDesigner onCreateIntervention={onInterventionCreate} />
+        </div>
+      </div>
+
+      {/* Intervention Preview */}
+      {interventionConfig && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Active Intervention</h2>
+          </div>
+          <div className="p-6">
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h3 className="font-medium text-purple-900">{interventionConfig.name}</h3>
+              <p className="text-sm text-purple-700 mt-1">
+                {interventionConfig.variants.length} variants • {interventionConfig.targeting.segments.join(', ')} segments
+              </p>
+              <div className="mt-3 space-y-2">
+                {interventionConfig.variants.map((variant: any, index: number) => (
+                  <div key={variant.id} className="bg-white p-3 rounded border">
+                    <div className="font-medium text-gray-900">{variant.name} ({variant.weight}%)</div>
+                    <p className="text-sm text-gray-600">{variant.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {results && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Intervention Results</h2>
+          </div>
+          <div className="p-6">
+            <ResultsDashboard results={results} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Developer Testing Interface Component (existing form)
+function DeveloperTestingInterface({
+  handleSubmit,
+  onSubmit,
+  register,
+  errors,
+  setValue,
+  watch,
+  isLoading,
+  error,
+  results,
+  selectedParticipants,
+  simulationType,
+  maxParticipants,
+  toggleParticipant,
+  loadFocusGroupTemplate,
+  loadIndividualTemplate
+}: any) {
+  return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form Panel */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Simulation Setup</h2>
-              <p className="text-sm text-gray-600 mt-1">Configure your simulation parameters</p>
+              <h2 className="text-lg font-medium text-gray-900">API Testing - Simulation Setup</h2>
+              <p className="text-sm text-gray-600 mt-1">Configure your simulation parameters (Developer Mode)</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
@@ -370,7 +520,5 @@ export default function SimulationsPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
   );
 }

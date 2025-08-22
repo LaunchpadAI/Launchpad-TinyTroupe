@@ -8,63 +8,37 @@ from datetime import datetime
 from .base import SimulationType, OutputFormat, PersonaCreationMode
 
 
-# Backward-compatible models to match frontend expectations
-class ParticipantConfigLegacy(BaseModel):
+# Production simulation models
+class ParticipantConfig(BaseModel):
     mode: PersonaCreationMode = Field(default=PersonaCreationMode.FROM_AGENT)
     specifications: Optional[List[Union[str, Dict[str, Any]]]] = Field(None, description="Agent specs or factory specs")
     population_params: Optional[Dict[str, Any]] = Field(None, description="Parameters for demographic sampling")
     fragments_to_apply: Optional[List[str]] = Field(None, description="Behavioral fragments to apply")
 
-class InteractionConfigLegacy(BaseModel):
+class InteractionConfig(BaseModel):
     allow_cross_communication: bool = Field(True, description="Enable agent-to-agent communication")
     rounds: int = Field(3, description="Number of simulation rounds")
     enable_memory: bool = Field(True, description="Enable episodic memory")
+    enable_semantic_memory: Optional[bool] = Field(None, description="Enable semantic memory for document access. None=auto-detect based on simulation type")
     cache_simulation: bool = Field(False, description="Cache simulation state")
-    max_exchanges: Optional[int] = Field(None, description="Max exchanges for individual interactions")
 
-class StimulusConfigLegacy(BaseModel):
+class StimulusConfig(BaseModel):
     type: str = Field(..., description="Type of stimulus (question, advertisement, product, etc.)")
     content: str = Field(..., description="Main stimulus content")
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context information")
 
-class ExtractionConfigLegacy(BaseModel):
+class ExtractionConfig(BaseModel):
     extract_results: bool = Field(True, description="Whether to extract structured results")
     extraction_objective: str = Field("Extract key insights and outcomes", description="What to extract")
     result_type: str = Field("json", description="Format for extraction results")
 
-class SimulationRequestLegacy(BaseModel):
-    simulation_type: SimulationType
-    participants: ParticipantConfigLegacy
-    interaction_config: InteractionConfigLegacy = Field(default_factory=InteractionConfigLegacy)
-    stimulus: StimulusConfigLegacy
-    extraction_config: ExtractionConfigLegacy = Field(default_factory=ExtractionConfigLegacy)
-
-# New models (for future use)
-class ParticipantConfig(BaseModel):
-    agent_name: str
-    preparation_prompt: Optional[str] = Field(None, description="Optional preparation prompt for the agent")
-    max_words_per_post: Optional[int] = Field(200, description="Maximum words per social media post")
-    
-class InteractionConfig(BaseModel):
-    max_rounds: int = Field(default=5, ge=1, le=20, description="Number of interaction rounds")
-    allow_questions_to_facilitator: bool = Field(default=True, description="Allow participants to ask questions")
-    include_world_clock: bool = Field(default=False, description="Include simulated time progression")
-    
-class StimulusConfig(BaseModel):
-    type: str = Field(..., description="Type of stimulus (e.g., 'advertisement', 'product_demo')")
-    content: str = Field(..., description="The actual stimulus content")
-    presentation_style: Optional[str] = Field("neutral", description="How to present the stimulus")
-    
-class ExtractionConfig(BaseModel):
-    checkpoint_name: str = Field(..., description="Name of the simulation checkpoint to extract from")
-    extraction_objective: str = Field(..., description="What specific insights to extract")
-    result_type: OutputFormat = Field(default=OutputFormat.JSON, description="Format for extraction results")
-    
 class SimulationRequest(BaseModel):
-    participants: List[ParticipantConfig]
-    interaction: InteractionConfig
+    simulation_type: SimulationType
+    participants: ParticipantConfig
+    interaction_config: InteractionConfig = Field(default_factory=InteractionConfig)
     stimulus: StimulusConfig
-    extraction: ExtractionConfig
+    extraction_config: ExtractionConfig = Field(default_factory=ExtractionConfig)
+
     
 class SimulationResponse(BaseModel):
     simulation_id: str

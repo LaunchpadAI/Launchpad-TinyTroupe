@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
 import uuid
 
-from ..models.simulation import SimulationRequestLegacy, SimulationResponse
+from ..models.simulation import SimulationRequest, SimulationResponse
 from ..services.simulation_service import SimulationService
 from ..services.agent_service import AgentService
 from ..core.dependencies import get_simulation_service, get_agent_service
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/v1/simulate", tags=["simulations"])
 
 @router.post("/focus-group", response_model=SimulationResponse)
 async def run_focus_group(
-    request: SimulationRequestLegacy,
+    request: SimulationRequest,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
@@ -25,20 +25,31 @@ async def run_focus_group(
         # Generate unique session ID
         session_id = str(uuid.uuid4())[:8]
         
+        # TinyTroupe uses rounds for conversation flow - no additional limits needed
+        
         # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
+            # Determine semantic memory configuration
+            # If explicitly set in request, use that value
+            # Otherwise, auto-detect: disable for focus groups by default (can be overridden)
+            if request.interaction_config.enable_semantic_memory is not None:
+                disable_semantic = not request.interaction_config.enable_semantic_memory
+            else:
+                # Auto-detect: disable for focus groups by default since they typically extract from conversation
+                disable_semantic = True
+            
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    # It's an agent name - load with unique suffix
-                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
+                    # It's an agent name - load with configured semantic memory setting
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id, disable_semantic_memory=disable_semantic)
                     agents.append(agent)
         
         if not agents:
             raise ValueError("No valid agents found in participants")
         
-        # Run simulation using the legacy service
-        result = simulation_service.run_legacy_simulation(request, agents)
+        # Run simulation using the service
+        result = simulation_service.run_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -47,7 +58,7 @@ async def run_focus_group(
 
 @router.post("/individual-interaction", response_model=SimulationResponse)
 async def run_individual_interaction(
-    request: SimulationRequestLegacy,
+    request: SimulationRequest,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
@@ -56,18 +67,27 @@ async def run_individual_interaction(
         # Generate unique session ID
         session_id = str(uuid.uuid4())[:8]
         
+        # TinyTroupe uses rounds for conversation flow - no additional limits needed
+        
         # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
+            # Determine semantic memory configuration
+            if request.interaction_config.enable_semantic_memory is not None:
+                disable_semantic = not request.interaction_config.enable_semantic_memory
+            else:
+                # Auto-detect: disable for individual interactions by default (typically conversation-based)
+                disable_semantic = True
+            
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id, disable_semantic_memory=disable_semantic)
                     agents.append(agent)
         
         if len(agents) != 1:
             raise ValueError("Individual interaction requires exactly one participant")
         
-        result = simulation_service.run_legacy_simulation(request, agents)
+        result = simulation_service.run_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -76,7 +96,7 @@ async def run_individual_interaction(
 
 @router.post("/social-simulation", response_model=SimulationResponse)
 async def run_social_simulation(
-    request: SimulationRequestLegacy,
+    request: SimulationRequest,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
@@ -88,15 +108,22 @@ async def run_social_simulation(
         # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
+            # Determine semantic memory configuration
+            if request.interaction_config.enable_semantic_memory is not None:
+                disable_semantic = not request.interaction_config.enable_semantic_memory
+            else:
+                # Auto-detect: enable for individual interactions by default (may need document access)
+                disable_semantic = False
+            
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id, disable_semantic_memory=disable_semantic)
                     agents.append(agent)
         
         if not agents:
             raise ValueError("No valid agents found in participants")
         
-        result = simulation_service.run_legacy_simulation(request, agents)
+        result = simulation_service.run_simulation(request, agents)
         return result
         
     except Exception as e:
@@ -105,7 +132,7 @@ async def run_social_simulation(
 
 @router.post("/market-research", response_model=SimulationResponse)
 async def run_market_research(
-    request: SimulationRequestLegacy,
+    request: SimulationRequest,
     simulation_service: SimulationService = Depends(get_simulation_service),
     agent_service: AgentService = Depends(get_agent_service)
 ):
@@ -114,15 +141,22 @@ async def run_market_research(
         # Load agents from specifications
         agents = []
         if request.participants.specifications:
+            # Determine semantic memory configuration
+            if request.interaction_config.enable_semantic_memory is not None:
+                disable_semantic = not request.interaction_config.enable_semantic_memory
+            else:
+                # Auto-detect: enable for individual interactions by default (may need document access)
+                disable_semantic = False
+            
             for agent_spec in request.participants.specifications:
                 if isinstance(agent_spec, str):
-                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id)
+                    agent = agent_service.load_agent(agent_spec, unique_suffix=session_id, disable_semantic_memory=disable_semantic)
                     agents.append(agent)
         
         if not agents:
             raise ValueError("No valid agents found in participants")
         
-        result = simulation_service.run_legacy_simulation(request, agents)
+        result = simulation_service.run_simulation(request, agents)
         return result
         
     except Exception as e:

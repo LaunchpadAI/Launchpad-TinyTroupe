@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TinyTroupeApiClient, CreatePersonaFromAgentSchema } from '@tinytroupe/api-client';
 import Link from 'next/link';
+import clsx from 'clsx';
+import PopulationBuilder from '../../components/PopulationBuilder';
 
 type CreatePersonaFormData = {
   agent_specification: string;
@@ -15,6 +17,8 @@ export default function PersonasPage() {
   const [lastResponse, setLastResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<'workflow' | 'developer'>('workflow');
+  const [populationData, setPopulationData] = useState<any[]>([]);
 
   const client = new TinyTroupeApiClient();
 
@@ -50,6 +54,12 @@ export default function PersonasPage() {
     });
   };
 
+  const handlePopulationChange = (population: any[]) => {
+    setPopulationData(population);
+    console.log('Population updated:', population);
+    // TODO: Integrate with API to create bulk personas
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -58,20 +68,52 @@ export default function PersonasPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Persona Management</h1>
-              <p className="mt-2 text-gray-600">Test persona creation and management endpoints</p>
+              <p className="mt-2 text-gray-600">Create individual personas or build large populations</p>
             </div>
-            <Link 
-              href="/"
-              className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium"
-            >
-              ← Back to Dashboard
-            </Link>
+            <div className="flex items-center space-x-4">
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => setMode('workflow')}
+                  className={clsx(
+                    'px-3 py-2 rounded-md text-sm font-medium',
+                    mode === 'workflow' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  )}
+                >
+                  👥 Population Builder
+                </button>
+                <button 
+                  onClick={() => setMode('developer')}
+                  className={clsx(
+                    'px-3 py-2 rounded-md text-sm font-medium',
+                    mode === 'developer' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  )}
+                >
+                  🔧 API Testing
+                </button>
+              </div>
+              <Link 
+                href="/"
+                className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium"
+              >
+                ← Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {mode === 'workflow' ? (
+          <PopulationBuilderInterface 
+            onPopulationChange={handlePopulationChange}
+            populationData={populationData}
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form Section */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
@@ -190,7 +232,81 @@ export default function PersonasPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
+    </div>
+  );
+}
+
+// Population Builder Interface Component
+function PopulationBuilderInterface({ 
+  onPopulationChange, 
+  populationData 
+}: { 
+  onPopulationChange: (population: any[]) => void;
+  populationData: any[];
+}) {
+  return (
+    <div className="space-y-8">
+      {/* Population Builder */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Population Builder</h2>
+          <p className="text-sm text-gray-600 mt-1">Create large-scale agent populations with demographic control</p>
+        </div>
+        <div className="p-6">
+          <PopulationBuilder onChange={onPopulationChange} maxSize={1000} />
+        </div>
+      </div>
+
+      {/* Generated Population Preview */}
+      {populationData.length > 0 && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Generated Population ({populationData.length} agents)</h2>
+            <p className="text-sm text-gray-600 mt-1">Preview of your generated agent population</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-96 overflow-auto">
+              {populationData.slice(0, 12).map((agent, index) => (
+                <div key={index} className="bg-gray-50 p-3 rounded-lg border">
+                  <div className="text-sm font-medium text-gray-900">Agent {index + 1}</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    <div>Age: {agent.age_range}</div>
+                    <div>Income: {agent.income_level}</div>
+                    <div>Location: {agent.location}</div>
+                    <div className="mt-1">
+                      <span className="text-gray-500">Traits:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {agent.personality_fragments.map((fragment: string) => (
+                          <span key={fragment} className="bg-blue-100 text-blue-800 text-xs px-1 py-0.5 rounded">
+                            {fragment.replace('_', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {populationData.length > 12 && (
+              <div className="mt-4 text-center text-sm text-gray-500">
+                Showing first 12 of {populationData.length} generated agents
+              </div>
+            )}
+
+            <div className="mt-4 flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                onClick={() => console.log('TODO: Generate personas from population')}
+              >
+                Generate {populationData.length} Personas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
