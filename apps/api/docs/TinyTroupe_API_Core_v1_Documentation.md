@@ -24,11 +24,12 @@ The TinyTroupe API v1 provides a RESTful interface to all core TinyTroupe capabi
 1. [Core Concepts](#core-concepts)
 2. [Simulation Control](#simulation-control)
 3. [Agent Management](#agent-management)
-4. [Population Generation](#population-generation)
-5. [Simulation Execution](#simulation-execution)
-6. [Research Services](#research-services)
-7. [Content Generation](#content-generation)
-8. [Results Extraction](#results-extraction)
+4. [Memory Configuration](#memory-configuration)
+5. [Population Generation](#population-generation)
+6. [Simulation Execution](#simulation-execution)
+7. [Research Services](#research-services)
+8. [Content Generation](#content-generation)
+9. [Results Extraction](#results-extraction)
 
 ---
 
@@ -181,6 +182,107 @@ Check if agent meets expectations
   "include_agent_spec": true
 }
 ```
+
+---
+
+## Memory Configuration
+
+### Overview
+
+TinyTroupe agents have two types of memory that can be configured for optimal performance:
+
+- **Episodic Memory**: Conversation history and interactions (always enabled)
+- **Semantic Memory**: Document storage for grounding and knowledge retrieval (configurable)
+
+### When to Configure Memory
+
+**Disable Semantic Memory** for simulations that extract results from conversation history:
+- Focus group discussions  
+- Survey responses
+- Individual agent interactions
+
+**Enable Semantic Memory** (default) for simulations requiring document access:
+- Market research with external documents
+- Grounding-based simulations 
+- Social simulations needing rich context
+
+### Configuration Options
+
+The semantic memory can be configured in the request's `interaction_config`:
+
+```json
+{
+  "interaction_config": {
+    "enable_semantic_memory": true,  // Explicitly enable for document access
+    // OR
+    "enable_semantic_memory": false, // Explicitly disable for performance
+    // OR
+    "enable_semantic_memory": null   // Auto-detect based on simulation type (default)
+  }
+}
+```
+
+### Default Auto-Detection by Simulation Type
+
+When `enable_semantic_memory` is `null` or not specified:
+
+| Endpoint | Default Configuration | Reason |
+|----------|---------------------|---------|
+| `/simulate/focus-group` | Semantic **disabled** | Typically extracts from conversation |
+| `/simulate/individual-interaction` | Semantic **disabled** | Usually conversation-based |
+| `/simulate/social-simulation` | Semantic **enabled** | Benefits from rich context |
+| `/simulate/market-research` | Semantic **enabled** | May need research documents |
+
+**Override Examples:**
+
+```json
+// Focus group that needs document access (e.g., product specs, user stories)
+{
+  "simulation_type": "focus_group",
+  "interaction_config": {
+    "enable_semantic_memory": true,  // Override default to enable
+    "rounds": 3
+  },
+  "stimulus": {
+    "type": "product_documentation",
+    "content": "Review this product specification and discuss..."
+  }
+}
+
+// Market research that only needs conversation extraction
+{
+  "simulation_type": "market_research",
+  "interaction_config": {
+    "enable_semantic_memory": false,  // Override default to disable
+    "rounds": 5
+  }
+}
+```
+
+### Technical Details
+
+Memory configuration is handled automatically based on simulation type in the agent loading process:
+
+```python
+# Focus groups disable semantic memory to avoid Document property conflicts
+agent = agent_service.load_agent(
+    agent_id="lisa",
+    unique_suffix=session_id,
+    disable_semantic_memory=True  # For episodic-only extraction
+)
+```
+
+**Why This Matters:**
+- Prevents `"property 'text' of 'Document' object has no setter"` errors
+- Improves performance for simulations that don't need document access
+- Maintains compatibility with TinyTroupe's memory consolidation patterns
+
+### Error Prevention
+
+This configuration prevents common extraction errors when:
+- Using `extract_results_from_agent()` on episodic memory
+- TinyTroupe tries to sanitize Document objects with read-only properties
+- Multiple simulations create conflicting semantic memory states
 
 ---
 

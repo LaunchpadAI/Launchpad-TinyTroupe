@@ -83,6 +83,7 @@ def run_simulation(request, agents):
 - ✅ **Session-scoped caches** prevent conflicts
 - ✅ **Unique agent naming** enables concurrency  
 - ✅ **Direct agent extraction** (not checkpoint-based)
+- ✅ **Configurable semantic memory** for optimal performance
 - ✅ **Automatic cleanup** ensures no leaks
 
 ---
@@ -134,6 +135,13 @@ agents = factory.generate_people(count)
 #### From Specifications:
 ```python
 agent = TinyPerson.load_specification("agent_file.json")
+
+# Configure semantic memory based on use case
+agent = agent_service.load_agent(
+    agent_id="lisa", 
+    unique_suffix="session_123",
+    disable_semantic_memory=True  # For focus groups extracting from episodic memory
+)
 ```
 
 #### From Grounded Data:
@@ -149,8 +157,83 @@ agent = population_service.create_grounded_persona(
 - All agent creation must specify source and context
 - Personality fragments must use enum values
 - Agent validation against expectations when specified
+- Configure semantic memory based on simulation type (see Memory Management section)
 
-### 3. Simulation Execution Patterns
+### 3. Memory Management & Configuration
+
+**Critical Design Decision: Semantic Memory Configuration**
+
+TinyTroupe agents have two types of memory:
+- **Episodic Memory**: Conversation history and interactions (always enabled)
+- **Semantic Memory**: Document storage for grounding and knowledge retrieval (configurable)
+
+#### When to Disable Semantic Memory
+
+```python
+# ✅ DISABLE for focus groups/surveys extracting from conversation history
+agent = agent_service.load_agent(
+    agent_id="lisa",
+    disable_semantic_memory=True  # Avoids Document property conflicts
+)
+
+# ✅ ENABLE for simulations requiring document access/grounding  
+agent = agent_service.load_agent(
+    agent_id="oscar", 
+    disable_semantic_memory=False  # Default: allows document access
+)
+```
+
+#### Memory Configuration by Simulation Type
+
+**Configurable in Request**: Add `enable_semantic_memory` to `interaction_config`:
+- `true`: Force enable (e.g., focus group with document review)
+- `false`: Force disable (e.g., market research without documents)
+- `null`/omitted: Auto-detect based on simulation type
+
+**Default Auto-Detection**:
+
+| Simulation Type | Default Semantic Memory | Reason | Override Use Case |
+|----------------|-------------------------|---------|-------------------|
+| **Focus Groups** | `disabled` | Extract from conversation | Enable for product specs, user stories |
+| **Surveys** | `disabled` | Extract from responses | Enable for document-grounded questions |
+| **Market Research** | `enabled` | May need research docs | Disable for pure conversation analysis |
+| **Social Simulations** | `enabled` | Rich contextual knowledge | Disable for performance optimization |
+| **Grounding-based** | `enabled` | Requires document access | Cannot disable (required) |
+
+#### Implementation Pattern
+
+```python
+def configure_agents_for_simulation(request, agent_specs: List[str]):
+    # Check if explicitly configured in request
+    if request.interaction_config.enable_semantic_memory is not None:
+        disable_semantic = not request.interaction_config.enable_semantic_memory
+    else:
+        # Auto-detect based on simulation type
+        if request.simulation_type == "focus_group":
+            disable_semantic = True  # Default: extract from conversation
+        elif request.simulation_type == "market_research":
+            disable_semantic = False  # Default: may need documents
+        # ... other types
+    
+    agents = []
+    for spec in agent_specs:
+        agent = agent_service.load_agent(
+            agent_id=spec,
+            unique_suffix=session_id,
+            disable_semantic_memory=disable_semantic
+        )
+        agents.append(agent)
+    
+    return agents
+```
+
+**Why This Matters:**
+- Focus groups extract results from conversation history, not documents
+- Document objects have read-only properties that cause extraction errors
+- Semantic memory adds overhead when not needed for the use case
+- Proper configuration prevents `"property 'text' of 'Document' object has no setter"` errors
+
+### 4. Simulation Execution Patterns
 
 **World Creation:**
 ```python
@@ -179,7 +262,7 @@ agent.listen_and_act("Direct message")
 - Set number of interaction rounds
 - Enable/disable agent memory and thinking
 
-### 4. Results Extraction (Mandatory)
+### 5. Results Extraction (Mandatory)
 
 **Field-Based Extraction:**
 ```python
@@ -205,7 +288,7 @@ results = extractor.extract_results_from_agents(agents)
 - **Quantitative**: `rating`, `likelihood_score`, `predicted_value`
 - **Qualitative**: `reasoning`, `key_points`, `suggestions`
 
-### 5. Error Handling & Quality Assurance
+### 6. Error Handling & Quality Assurance
 
 **Validation Requirements:**
 - Agent validation against expectations
@@ -399,6 +482,66 @@ class NewEndpointService:
 
 ---
 
+## Troubleshooting Common Issues
+
+### Document Property Extraction Error
+
+**Error**: `"property 'text' of 'Document' object has no setter"`
+
+**Root Cause**: TinyTroupe tries to modify llama_index Document objects with read-only text properties during semantic memory operations.
+
+**Solution**: Disable semantic memory for simulations extracting from episodic memory:
+
+```python
+# ❌ This causes Document errors:
+agent = agent_service.load_agent("lisa")  # semantic_memory enabled by default
+
+# ✅ This fixes the error:
+agent = agent_service.load_agent(
+    "lisa", 
+    disable_semantic_memory=True  # For focus groups/surveys
+)
+```
+
+**When to Apply**:
+- Focus group simulations extracting from conversation history
+- Survey responses extracting from individual agent responses  
+- Any simulation using `extract_results_from_agent()` on episodic memory
+
+**When NOT to Apply**:
+- Market research requiring document access
+- Grounding-based simulations using external content
+- Social simulations needing rich contextual knowledge
+
+### Agent Naming Conflicts
+
+**Error**: `"Agent name Lisa Carter is already in use"`
+
+**Root Cause**: Multiple concurrent simulations trying to use the same agent names.
+
+**Solution**: Always use unique suffixes for concurrent sessions:
+
+```python
+# ✅ Proper concurrent agent loading:
+session_id = str(uuid.uuid4())[:8]
+agent = agent_service.load_agent("lisa", unique_suffix=session_id)
+# Results in: "Lisa Carter_abc12345"
+```
+
+### Session Cache Conflicts
+
+**Error**: Simulations interfering with each other or stale results.
+
+**Solution**: Use session-scoped cache files:
+
+```python
+# ✅ Session isolation:
+session_cache_file = f"cache/sessions/sim_{simulation_id}.json"
+control.begin(cache_file=session_cache_file, cache=True)
+```
+
+---
+
 ## Common Anti-Patterns to Avoid
 
 ### ❌ Don't Do This:
@@ -450,6 +593,7 @@ Before implementing any new TinyTroupe API endpoint, verify:
 
 - [ ] **Session Management**: Uses SimulationControlService for all operations
 - [ ] **Agent Creation**: Follows factory patterns or specification loading
+- [ ] **Memory Configuration**: Properly configures semantic memory based on simulation type
 - [ ] **Checkpointing**: Saves state at logical breakpoints
 - [ ] **Simulation Execution**: Uses TinyWorld patterns with proper configuration
 - [ ] **Results Extraction**: Implements field-based structured extraction

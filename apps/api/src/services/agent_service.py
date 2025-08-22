@@ -3,6 +3,7 @@ Agent management service
 """
 
 from typing import List, Dict, Any, Optional
+import os
 import tinytroupe
 from tinytroupe.agent import TinyPerson
 from tinytroupe.factory import TinyPersonFactory
@@ -46,6 +47,115 @@ class AgentRegistry:
                 "file_path": f"{self.agent_specs_path}/Marcos.agent.json",
                 "category": "medical",
                 "tags": ["medicine", "neurology", "science"]
+            },
+            # High Net Worth Individuals for Luxury Property Focus Groups - Real People
+            "tony_parker": {
+                "id": "tony_parker",
+                "name": "Tony Parker",
+                "title": "Former NBA Player",
+                "description": "Former NBA champion with luxury real estate expertise",
+                "file_path": "apps/api/agents/real-athletes/tony_parker_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "luxury_real_estate", "entertainment", "investment"]
+            },
+            "kenny_pickett": {
+                "id": "kenny_pickett",
+                "name": "Kenny Pickett", 
+                "title": "NFL Quarterback",
+                "description": "NFL quarterback with growing real estate portfolio focused on family-oriented luxury",
+                "file_path": "apps/api/agents/real-athletes/kenny_pickett_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "family", "technology", "practical_luxury"]
+            },
+            "wayne_gretzky": {
+                "id": "wayne_gretzky",
+                "name": "Wayne Gretzky",
+                "title": "Hockey Legend", 
+                "description": "Hockey legend with extensive luxury real estate experience and classic luxury appreciation",
+                "file_path": "apps/api/agents/real-athletes/wayne_gretzky_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "classic_luxury", "entertainment", "celebrity_privacy"]
+            },
+            "carey_price": {
+                "id": "carey_price",
+                "name": "Carey Price",
+                "title": "NHL Goaltender",
+                "description": "NHL goaltender focused on wellness-oriented luxury properties and health amenities",
+                "file_path": "apps/api/agents/real-athletes/carey_price_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "wellness", "fitness", "family", "health"]
+            },
+            "eric_lamaze": {
+                "id": "eric_lamaze",
+                "name": "Eric Lamaze",
+                "title": "Olympic Equestrian",
+                "description": "Olympic equestrian champion with expertise in European-style luxury and country estates",
+                "file_path": "apps/api/agents/real-athletes/eric_lamaze_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["equestrian", "european_luxury", "country_estates", "craftsmanship"]
+            },
+            "brian_griese": {
+                "id": "brian_griese",
+                "name": "Brian Griese",
+                "title": "Former NFL Quarterback/Coach",
+                "description": "Former NFL quarterback turned coach with expertise in smart homes and mountain luxury",
+                "file_path": "apps/api/agents/real-athletes/brian_griese_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "smart_home", "mountain_luxury", "entertainment"]
+            },
+            "channing_frye": {
+                "id": "channing_frye",
+                "name": "Channing Frye",
+                "title": "Former NBA Forward",
+                "description": "Former NBA forward with expertise in family-oriented colonial architecture and fine art",
+                "file_path": "apps/api/agents/real-athletes/channing_frye_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "family", "colonial_architecture", "fine_art"]
+            },
+            "tessa_virtue": {
+                "id": "tessa_virtue",
+                "name": "Tessa Virtue",
+                "title": "Olympic Ice Dancing Champion",
+                "description": "Olympic gold medalist with sophisticated French-inspired design taste",
+                "file_path": "apps/api/agents/real-athletes/tessa_virtue_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["olympic", "french_design", "heritage_homes", "elegance"]
+            },
+            "jason_arnott": {
+                "id": "jason_arnott",
+                "name": "Jason Arnott",
+                "title": "Former NHL All-Star",
+                "description": "Former NHL All-Star with 'rock star' contemporary aesthetic and luxury entertaining focus",
+                "file_path": "apps/api/agents/real-athletes/jason_arnott_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "contemporary", "entertaining", "luxury_finishes"]
+            },
+            "derrick_johnson": {
+                "id": "derrick_johnson",
+                "name": "Derrick Johnson",
+                "title": "Former NFL Linebacker/Hall of Famer",
+                "description": "College Football Hall of Famer with expertise in Texas luxury family properties",
+                "file_path": "apps/api/agents/real-athletes/derrick_johnson_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "texas_luxury", "family_properties", "water_features"]
+            },
+            "brandon_mcmanus": {
+                "id": "brandon_mcmanus",
+                "name": "Brandon McManus",
+                "title": "Former NFL Kicker",
+                "description": "Former NFL kicker specializing in smart home technology and modern automation",
+                "file_path": "apps/api/agents/real-athletes/brandon_mcmanus_tinytroupe.agent.json",
+                "category": "high_net_worth",
+                "tags": ["sports", "smart_technology", "automation", "contemporary"]
+            },
+            "real_estate": {
+                "id": "real_estate",
+                "name": "David Chen",
+                "title": "Real Estate Mogul",
+                "description": "Real estate developer with deep market and investment knowledge",
+                "file_path": "apps/api/agents/artificial-personas/real_estate.agent.json",
+                "category": "high_net_worth",
+                "tags": ["real_estate", "development", "market_analysis", "investment"]
             }
         }
     
@@ -57,17 +167,37 @@ class AgentRegistry:
         """Get agent metadata. Future: SELECT * FROM agents WHERE id = agent_id"""
         return self.available_agents.get(agent_id)
     
-    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None) -> TinyPerson:
+    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None, disable_semantic_memory: bool = False) -> TinyPerson:
         """Load agent instance with optional unique suffix to avoid naming conflicts"""
         agent_info = self.get_agent_info(agent_id)
         if not agent_info:
             raise ValueError(f"Agent '{agent_id}' not found")
         
         try:
-            agent = TinyPerson.load_specification(agent_info["file_path"])
+            # Resolve absolute path for agent file
+            file_path = agent_info["file_path"]
+            if not os.path.isabs(file_path):
+                # Convert relative path to absolute path from project root
+                # Current file is at apps/api/src/services/agent_service.py
+                # We need to go up to project root (4 levels up)
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.join(current_dir, "..", "..", "..", "..")
+                file_path = os.path.join(project_root, file_path)
+                file_path = os.path.abspath(file_path)
+            
+            agent = TinyPerson.load_specification(file_path)
             # Add unique suffix to avoid naming conflicts
             if unique_suffix:
                 agent.name = f"{agent.name}_{unique_suffix}"
+            
+            # Optionally configure semantic memory for simulations that only need episodic memory
+            # This avoids Document property issues when extracting results from conversation history
+            if disable_semantic_memory:
+                # Instead of setting to None (which breaks serialization), 
+                # create a new empty SemanticMemory to avoid Document issues
+                from tinytroupe.agent.memory import SemanticMemory
+                agent.semantic_memory = SemanticMemory()
+            
             return agent
         except Exception as e:
             raise ValueError(f"Failed to load agent '{agent_id}': {str(e)}")
@@ -93,9 +223,9 @@ class AgentService:
         """Get information about a specific agent"""
         return self.registry.get_agent_info(agent_id)
     
-    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None) -> TinyPerson:
+    def load_agent(self, agent_id: str, unique_suffix: Optional[str] = None, disable_semantic_memory: bool = False) -> TinyPerson:
         """Load an agent instance with optional unique suffix"""
-        return self.registry.load_agent(agent_id, unique_suffix)
+        return self.registry.load_agent(agent_id, unique_suffix, disable_semantic_memory)
     
     def create_persona_from_agent(self, agent_name: str, new_agent_name: Optional[str] = None) -> TinyPerson:
         """Create a persona from an existing agent"""
