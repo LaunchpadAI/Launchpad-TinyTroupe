@@ -763,26 +763,8 @@ class SimulationService:
             stimulus_message = self._prepare_stimulus_message(request.stimulus)
             world.broadcast(stimulus_message)
             
-            # Add PERSONA-SPECIFIC inner thoughts for authentic activation
-            print(f"\n🧠 SENDING PERSONA-SPECIFIC INNER THOUGHTS:")
-            
-            # Create a combined persona activation message that addresses each agent individually
-            combined_activation = "🎯 PERSONA ACTIVATION INSTRUCTIONS:\n\n"
-            for agent in agents:
-                persona_activation = self._create_persona_specific_inner_thought(agent, request.simulation_type)
-                print(f"\n👤 {agent.name}:")
-                print(f"   💭 Inner thought: {persona_activation[:100]}...")
-                
-                # Add to combined message with agent-specific targeting
-                combined_activation += f"FOR {agent.name}:\n{persona_activation}\n\n"
-            
-            combined_activation += """
-🎯 IMPORTANT: Each agent should only follow the instructions addressed to them by name above.
-Use your authentic speech patterns extensively in every response.
-"""
-            
-            # Send combined persona activation through world broadcasting (preserves action collection)
-            world.broadcast_thought(combined_activation)
+            # Let agents respond naturally using their loaded personas - no inner thoughts needed
+            print(f"\n🧠 LETTING AGENTS RESPOND NATURALLY (no inner thoughts - relying on loaded personas)")
             
             # Run simulation following TinyTroupe focus group pattern
             # Single run call with user-specified rounds and capture actions
@@ -829,65 +811,3 @@ Use your authentic speech patterns extensively in every response.
             self.active_simulations[simulation_id]["status"] = "failed"
             raise Exception(f"Simulation failed: {str(e)}")
     
-    def _create_persona_specific_inner_thought(self, agent: TinyPerson, simulation_type: str) -> str:
-        """Create persona-specific inner thought to activate authentic voice"""
-        
-        # Extract speech patterns and personality traits
-        speech_patterns = {}
-        personality_info = ""
-        
-        if hasattr(agent, '_specification') and agent._specification:
-            persona = agent._specification.get('persona', {})
-            speech_patterns = persona.get('speech_patterns', {})
-            
-            # Extract key personality elements
-            traits = persona.get('personality', {}).get('traits', [])
-            style = persona.get('style', '')
-            occupation = persona.get('occupation', {})
-            
-            personality_info = f"""
-Your occupation: {occupation.get('title', 'Unknown')} - {occupation.get('description', '')[:100]}...
-Your communication style: {style}
-Key personality traits: {', '.join(traits[:3]) if traits else 'None specified'}"""
-        
-        # Create activation message based on speech patterns
-        activation_parts = [
-            f"🎯 PERSONA ACTIVATION for {agent.name}:",
-            personality_info
-        ]
-        
-        if speech_patterns:
-            activation_parts.extend([
-                "\n🗣️ YOUR AUTHENTIC SPEECH PATTERNS - USE THESE EXTENSIVELY:",
-                f"• Verbal tics: {', '.join(speech_patterns.get('verbal_tics', [])[:5])}",
-                f"• Opening phrases: {', '.join(speech_patterns.get('opening_phrases', [])[:3])}",
-                f"• Transition phrases: {', '.join(speech_patterns.get('transition_phrases', [])[:3])}"
-            ])
-            
-            if 'family_references' in speech_patterns:
-                activation_parts.append(f"• Family references: {', '.join(speech_patterns['family_references'][:3])}")
-            
-            if 'story_starters' in speech_patterns:
-                activation_parts.append(f"• Story starters: {', '.join(speech_patterns['story_starters'][:3])}")
-        else:
-            activation_parts.append("\n⚠️ No specific speech patterns found - be authentic to your character")
-        
-        # Add simulation-specific guidance
-        if simulation_type == "focus_group":
-            activation_parts.extend([
-                "\n💬 FOCUS GROUP BEHAVIOR:",
-                "- Use your natural speech patterns extensively",
-                "- Share personal experiences when relevant", 
-                "- React authentically to others' opinions",
-                "- Don't worry about being 'professional' - be yourself",
-                "- MOST IMPORTANT: Don't just agree with everyone else!"
-            ])
-        else:
-            activation_parts.extend([
-                "\n📝 INDIVIDUAL RESPONSE BEHAVIOR:",
-                "- Use your authentic voice and speech patterns",
-                "- Draw from your personal background and experiences",
-                "- Be honest and genuine in your responses"
-            ])
-        
-        return "\n".join(activation_parts)
