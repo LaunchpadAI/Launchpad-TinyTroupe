@@ -131,8 +131,11 @@ class OpenAIClient:
         # dedent the messages (field 'content' only) if needed (using textwrap)
         if dedent_messages:
             for message in current_messages:
-                if "content" in message:
+                if "content" in message and isinstance(message["content"], str):
                     message["content"] = utils.dedent(message["content"])
+        
+        # Convert messages to multimodal format if they contain images
+        current_messages = self._convert_to_multimodal_if_needed(current_messages)
             
         
         # We need to adapt the parameters to the API type, so we create a dictionary with them first
@@ -271,6 +274,51 @@ class OpenAIClient:
 
     def _is_reasoning_model(self, model):
         return "o1" in model or "o3" in model
+    
+    def _convert_to_multimodal_if_needed(self, messages):
+        """
+        Convert messages to multimodal format if they contain images.
+        Handles both string content and multimodal content formats.
+        """
+        converted_messages = []
+        
+        for message in messages:
+            converted_message = message.copy()
+            
+            # Check if message has images in a special format
+            if "images" in message and message["images"]:
+                # Convert to multimodal format
+                content_parts = []
+                
+                # Add text content
+                if "content" in message and message["content"]:
+                    content_parts.append({
+                        "type": "text",
+                        "text": message["content"]
+                    })
+                
+                # Add images
+                for image_b64 in message["images"]:
+                    # Determine image format from base64 data
+                    if image_b64.startswith('data:'):
+                        image_url = image_b64
+                    else:
+                        # Assume JPEG if no format specified
+                        image_url = f"data:image/jpeg;base64,{image_b64}"
+                    
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": image_url}
+                    })
+                
+                # Update message content to multimodal format
+                converted_message["content"] = content_parts
+                # Remove the images field as it's now in content
+                converted_message.pop("images", None)
+            
+            converted_messages.append(converted_message)
+        
+        return converted_messages
 
     def _raw_model_response_extractor(self, response):
         """
@@ -428,12 +476,78 @@ class NonTerminalError(Exception):
     pass
 
 ###########################################################################
+# OpenRouter client
+#
+# Enables access to 200+ models through OpenRouter's unified API
+# Compatible with OpenAI API format but with additional model options
+###########################################################################
+
+class OpenRouterClient(OpenAIClient):
+    """
+    A utility class for interacting with the OpenRouter API.
+    Provides access to multiple LLM providers (OpenAI, Anthropic, Meta, etc.)
+    through a unified OpenAI-compatible interface.
+    """
+
+    def _setup_from_config(self):
+        """
+        Sets up the OpenRouter API configurations for this client.
+        """
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is required for OpenRouter client")
+        
+        # Initialize OpenAI client with OpenRouter base URL
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key
+        )
+    
+    def _raw_model_call(self, model, chat_api_params):
+        """
+        Calls the OpenRouter API with the given parameters.
+        Handles model routing through OpenRouter's unified interface.
+        """
+        
+        # OpenRouter doesn't support reasoning models like o1/o3 in the same way
+        # so we'll use the standard chat completion format
+        if self._is_reasoning_model(model):
+            logger.warning(f"Model {model} appears to be a reasoning model. OpenRouter may handle this differently than direct OpenAI access.")
+        
+        # To make the log cleaner, we remove the messages from the logged parameters
+        logged_params = {k: v for k, v in chat_api_params.items() if k != "messages"}
+        
+        if "response_format" in chat_api_params:
+            # OpenRouter supports structured outputs for compatible models
+            if "stream" in chat_api_params:
+                del chat_api_params["stream"]
+            
+            logger.debug(f"Calling OpenRouter model (with structured output) with parameters: {logged_params}")
+            logger.debug(f"   --> Complete messages sent to LLM: {chat_api_params['messages']}")
+            
+            try:
+                # Use parse method for structured outputs
+                result_message = self.client.beta.chat.completions.parse(
+                    **chat_api_params
+                )
+                return result_message
+            except Exception as e:
+                logger.warning(f"Structured output failed on OpenRouter, falling back to standard completion: {e}")
+                # Remove response_format and try standard completion
+                if "response_format" in chat_api_params:
+                    del chat_api_params["response_format"]
+                return self.client.chat.completions.create(**chat_api_params)
+        else:
+            logger.debug(f"Calling OpenRouter model with parameters: {logged_params}")
+            return self.client.chat.completions.create(**chat_api_params)
+
+###########################################################################
 # Clients registry
 #
 # We can have potentially different clients, so we need a place to 
 # register them and retrieve them when needed.
 #
-# We support both OpenAI and Azure OpenAI Service API by default.
+# We support OpenAI, Azure OpenAI Service, and OpenRouter APIs by default.
 # Thus, we need to set the API parameters based on the choice of the user.
 # This is done within specialized classes.
 #
@@ -502,6 +616,7 @@ def force_api_cache(cache_api_calls, cache_file_name=default["cache_file_name"])
 # default client
 register_client("openai", OpenAIClient())
 register_client("azure", AzureClient())
+register_client("openrouter", OpenRouterClient())
 
 
 

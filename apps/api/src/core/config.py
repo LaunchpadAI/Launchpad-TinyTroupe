@@ -26,8 +26,8 @@ class Settings:
     ]
     
     # TinyTroupe Configuration
-    TINYTROUPE_PATH: str = "../../packages/tinytroupe-original"
-    AGENT_SPECS_PATH: str = "../../packages/tinytroupe-original/examples/agents"
+    TINYTROUPE_PATH: str = str(Path(__file__).parent.parent.parent.parent.parent / "packages" / "tinytroupe-original")
+    AGENT_SPECS_PATH: str = str(Path(__file__).parent.parent.parent.parent.parent / "packages" / "tinytroupe-original" / "examples" / "agents")
     
     # Background Task Configuration
     MAX_CONCURRENT_SIMULATIONS: int = 5

@@ -2,9 +2,12 @@
 Simulation endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import List, Dict, Any
 import uuid
+import base64
+import io
+from PIL import Image
 
 from ..models.simulation import SimulationRequest, SimulationResponse
 from ..services.simulation_service import SimulationService

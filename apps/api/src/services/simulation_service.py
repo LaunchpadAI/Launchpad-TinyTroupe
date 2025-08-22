@@ -527,6 +527,26 @@ class SimulationService:
             return True
         return False
     
+    def _prepare_stimulus_message(self, stimulus) -> str:
+        """
+        Prepare stimulus message for broadcasting to agents.
+        Handles both text-only and multimodal (text + images) stimuli.
+        
+        For images, we create a text description that references the visual content,
+        then the actual multimodal handling happens in the OpenAI utils layer.
+        """
+        message = stimulus.content
+        
+        # If images are present, enhance the text stimulus to reference them
+        if hasattr(stimulus, 'images') and stimulus.images:
+            image_count = len(stimulus.images)
+            if image_count == 1:
+                message = f"{message}\n\n[Note: There is 1 property image included for your visual analysis.]"
+            else:
+                message = f"{message}\n\n[Note: There are {image_count} property images included for your visual analysis.]"
+        
+        return message
+    
     def run_simulation(self, request: SimulationRequest, agents: List[TinyPerson]) -> SimulationResponse:
         """Run simulation following TinyTroupe example patterns exactly"""
         simulation_id = str(uuid.uuid4())
@@ -553,7 +573,9 @@ class SimulationService:
             }
             
             # Present stimulus using TinyTroupe broadcast pattern
-            world.broadcast(request.stimulus.content)
+            # Handle both text-only and multimodal (text + images) stimuli
+            stimulus_message = self._prepare_stimulus_message(request.stimulus)
+            world.broadcast(stimulus_message)
             
             # Add inner thought for more realistic responses (like TinyTroupe examples)
             if request.simulation_type == "focus_group":

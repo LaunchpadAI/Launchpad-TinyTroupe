@@ -25,6 +25,7 @@ class InteractionConfig(BaseModel):
 class StimulusConfig(BaseModel):
     type: str = Field(..., description="Type of stimulus (question, advertisement, product, etc.)")
     content: str = Field(..., description="Main stimulus content")
+    images: Optional[List[str]] = Field(None, description="Base64 encoded images for vision analysis")
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context information")
 
 class ExtractionConfig(BaseModel):
