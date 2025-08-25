@@ -33,6 +33,10 @@ async def run_focus_group(
         # Load agents from specifications with unique suffix
         agents = []
         if request.participants.specifications:
+            print(f"🔍 DEBUG: Requested participants: {request.participants.specifications}")
+            print(f"🔍 DEBUG: Participants type: {type(request.participants.specifications)}")
+            print(f"🔍 DEBUG: Participants length: {len(request.participants.specifications)}")
+            
             # Determine semantic memory configuration
             # If explicitly set in request, use that value
             # Otherwise, auto-detect: disable for focus groups by default (can be overridden)
@@ -42,11 +46,14 @@ async def run_focus_group(
                 # Auto-detect: disable for focus groups by default since they typically extract from conversation
                 disable_semantic = True
             
-            for agent_spec in request.participants.specifications:
+            for i, agent_spec in enumerate(request.participants.specifications):
+                print(f"🔍 DEBUG: Processing participant {i}: {agent_spec} (type: {type(agent_spec)})")
                 if isinstance(agent_spec, str):
                     # It's an agent name - load with configured semantic memory setting
+                    print(f"🔍 DEBUG: Loading agent: {agent_spec}")
                     agent = agent_service.load_agent(agent_spec, unique_suffix=session_id, disable_semantic_memory=disable_semantic)
                     agents.append(agent)
+                    print(f"🔍 DEBUG: Loaded agent: {agent.name}")
         
         if not agents:
             raise ValueError("No valid agents found in participants")
